@@ -78,7 +78,32 @@ func main() {
 
 		ar.Post("/users", api.AdminCreateUser)
 		ar.Get("/supervisors", api.AdminListSupervisors)
+		ar.Post("/boards", api.AdminCreateBoard)
+ar.Get("/boards", api.AdminListBoardsByFile)
+
+ar.Post("/board-members", api.AdminAddBoardMember)
+ar.Get("/board-members", api.AdminListBoardMembers)
+
+ar.Get("/students", api.AdminSearchStudents)
+ar.Get("/board", api.AdminGetBoardFull)
+
+ar.Post("/lists", api.AdminCreateList)
+ar.Post("/cards", api.AdminCreateCard)
+
+ar.Post("/cards/move", api.AdminMoveCard)
+ar.Post("/cards/reorder", api.AdminReorderCards)
+ar.Get("/card", api.AdminGetCard)
+ar.Put("/card", api.AdminUpdateCard)
+ar.Get("/card/full", api.AdminGetCardFull)
+
+ar.Post("/card/subtasks", api.AdminCreateSubtask)
+ar.Post("/card/subtasks/toggle", api.AdminToggleSubtask)
+ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
+
+ar.Post("/card/assignees/add", api.AdminAddAssignee)
+ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
 	})
+	
 
 	log.Println("API running on http://localhost:" + port)
 	log.Println("Seed Admin: admin@local.test / Admin123!")

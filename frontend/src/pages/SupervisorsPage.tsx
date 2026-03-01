@@ -36,8 +36,8 @@ export default function SupervisorsPage() {
 
   return (
     <AppShell
-      title="Supervisors & Files"
-      subtitle="Each supervisor automatically has a File. Next we’ll create Boards inside these files."
+      title="Supervisors"
+      subtitle="Each supervisor has a workspace file."
       showLogout
       right={
         <>
@@ -59,31 +59,31 @@ export default function SupervisorsPage() {
             <tr>
               <th>Supervisor</th>
               <th>Email</th>
-              <th>File ID</th>
-              <th>Created</th>
+              <th>Workspace</th>
             </tr>
           </thead>
           <tbody>
             {data.map((s) => (
               <tr key={s.supervisor_user_id}>
                 <td>
-                  <div style={{ fontWeight: 700 }}>{s.full_name}</div>
+                  <div style={{ fontWeight: 900 }}>{s.full_name}</div>
                   <div style={{ color: "var(--muted2)", fontSize: 12 }}>
                     user_id: {s.supervisor_user_id}
                   </div>
                 </td>
                 <td style={{ color: "var(--muted)" }}>{s.email}</td>
                 <td>
-                  <span className="badge">#{s.file_id}</span>
+                  <button className="btn" onClick={() => nav(`/admin/files/${s.file_id}`)}>
+                    Open File #{s.file_id}
+                  </button>
                 </td>
-                <td style={{ color: "var(--muted)" }}>{s.created_at}</td>
               </tr>
             ))}
 
             {!loading && data.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ color: "var(--muted)" }}>
-                  No supervisors yet. Go back and create one from Admin Dashboard.
+                <td colSpan={3} style={{ color: "var(--muted)" }}>
+                  No supervisors yet.
                 </td>
               </tr>
             )}
