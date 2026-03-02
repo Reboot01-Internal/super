@@ -2,11 +2,11 @@
 PRAGMA foreign_keys = ON;
 
 -- Card meta (status/priority)
-ALTER TABLE cards ADD COLUMN status TEXT NOT NULL DEFAULT 'todo'
-  CHECK(status IN ('todo','doing','blocked','done'));
+-- ALTER TABLE cards ADD COLUMN status TEXT NOT NULL DEFAULT 'todo'
+--   CHECK(status IN ('todo','doing','blocked','done'));
 
-ALTER TABLE cards ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'
-  CHECK(priority IN ('low','medium','high','urgent'));
+-- ALTER TABLE cards ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'
+--   CHECK(priority IN ('low','medium','high','urgent'));
 
 -- Labels per board
 CREATE TABLE IF NOT EXISTS labels (

@@ -579,3 +579,58 @@ func (a *API) AdminDeleteReminder(w http.ResponseWriter, r *http.Request) {
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "reminder_deleted", "reminder_id="+strconv.FormatInt(req.ReminderID,10))
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
+func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
+	rows, err := a.conn.Query(`
+		SELECT 
+			b.id,
+			b.name,
+			b.description,
+			u.full_name,
+			b.created_at,
+			COUNT(DISTINCT l.id) as lists_count,
+			COUNT(DISTINCT c.id) as cards_count
+		FROM boards b
+		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+		JOIN users u ON u.id = sf.supervisor_user_id
+		LEFT JOIN lists l ON l.board_id = b.id
+		LEFT JOIN cards c ON c.list_id = l.id
+		GROUP BY b.id
+		ORDER BY b.created_at DESC
+	`)
+	if err != nil {
+		utils.WriteJSON(w, 500, map[string]any{"error": "db error"})
+		return
+	}
+	defer rows.Close()
+
+	type Row struct {
+		ID            int64  `json:"id"`
+		Name          string `json:"name"`
+		Description   string `json:"description"`
+		Supervisor    string `json:"supervisor_name"`
+		CreatedAt     string `json:"created_at"`
+		ListsCount    int64  `json:"lists_count"`
+		CardsCount    int64  `json:"cards_count"`
+	}
+
+	var out []Row
+
+	for rows.Next() {
+		var r Row
+		if err := rows.Scan(
+			&r.ID,
+			&r.Name,
+			&r.Description,
+			&r.Supervisor,
+			&r.CreatedAt,
+			&r.ListsCount,
+			&r.CardsCount,
+		); err != nil {
+			utils.WriteJSON(w, 500, map[string]any{"error": "scan error"})
+			return
+		}
+		out = append(out, r)
+	}
+
+	utils.WriteJSON(w, 200, out)
+}

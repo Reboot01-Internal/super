@@ -117,6 +117,7 @@ ar.Post("/card/attachments/delete", api.AdminDeleteAttachment)
 
 ar.Post("/card/reminders", api.AdminCreateReminder)
 ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
+ar.Get("/all-boards", api.AdminAllBoards)
 
 	})
 	

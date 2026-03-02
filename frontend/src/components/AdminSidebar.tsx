@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 type Props = {
-  active?: "dashboard" | "supervisors";
+  active?: "dashboard" | "supervisors" | "boards" | "reports";
 };
 
 export default function AdminSidebar({ active }: Props) {
@@ -9,7 +9,11 @@ export default function AdminSidebar({ active }: Props) {
 
   return (
     <aside className="admSide">
-      <div className="admBrand" onClick={() => nav("/admin")} style={{ cursor: "pointer" }}>
+      <div
+        className="admBrand"
+        onClick={() => nav("/admin")}
+        style={{ cursor: "pointer" }}
+      >
         <div className="admLogo" />
         <div>
           <div className="admBrandName">TaskFlow</div>
@@ -34,14 +38,20 @@ export default function AdminSidebar({ active }: Props) {
           Supervisors
         </button>
 
-        <button className="admNavItem" disabled>
+        <button
+          className={`admNavItem ${active === "boards" ? "admNavItemActive" : ""}`}
+          onClick={() => nav("/admin/boards")}
+        >
           <span className="admNavDot" />
-          Boards (soon)
+          Boards
         </button>
 
-        <button className="admNavItem" disabled>
+        <button
+          className={`admNavItem ${active === "reports" ? "admNavItemActive" : ""}`}
+          onClick={() => nav("/admin/reports")}
+        >
           <span className="admNavDot" />
-          Reports (soon)
+          Reports
         </button>
       </nav>
 
@@ -54,7 +64,10 @@ export default function AdminSidebar({ active }: Props) {
           </div>
         </div>
 
-        <button className="admSideBtn" onClick={() => nav("/admin/supervisors")}>
+        <button
+          className="admSideBtn"
+          onClick={() => nav("/admin/supervisors")}
+        >
           Manage supervisors
         </button>
       </div>

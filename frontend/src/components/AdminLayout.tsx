@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 
 type Props = {
-  active?: "dashboard" | "supervisors";
+  active?: "dashboard" | "supervisors" | "boards" | "reports";
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
+  showLogout?: boolean;
 };
 
 export default function AdminLayout({ active, title, subtitle, right, children }: Props) {

@@ -58,7 +58,13 @@ CREATE TABLE IF NOT EXISTS cards (
   title TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   position INTEGER NOT NULL DEFAULT 0,
+
+  due_date TEXT,
+  status TEXT NOT NULL DEFAULT 'todo',      -- todo | doing | blocked | done
+  priority TEXT NOT NULL DEFAULT 'medium',  -- low | medium | high | urgent
+
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
   FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
 );
 -- Due date for cards

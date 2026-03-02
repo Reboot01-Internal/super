@@ -7,6 +7,7 @@ import BoardMembersPage from "./pages/BoardMembersPage";
 import { getToken } from "./lib/api";
 import type { JSX } from "react";
 import BoardPage from "./pages/BoardPage.tsx";
+import AdminBoardsPage from "./pages/AdminBoardsPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = getToken();
@@ -61,8 +62,16 @@ export default function App() {
           </RequireAuth>
         }
       />
+      <Route
+  path="/admin/boards"
+  element={
+    <RequireAuth>
+      <AdminBoardsPage />
+    </RequireAuth>
+  }
+/>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
     
   );
