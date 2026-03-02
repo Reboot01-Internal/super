@@ -23,42 +23,28 @@ export default function AppShell({
     nav("/login");
   }
 
-  return (
-    <div style={{ padding: "26px 0 50px" }}>
-      <div className="container">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 14,
-            marginBottom: 18,
-          }}
-        >
-          <div>
-            <div className="kicker">TaskFlow • Admin Console</div>
-            <div style={{ height: 10 }} />
-            <h1 className="h1">{title}</h1>
-            {subtitle && (
-              <>
-                <div style={{ height: 6 }} />
-                <p className="h2">{subtitle}</p>
-              </>
-            )}
-          </div>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {right}
-            {showLogout && (
-              <button className="btn danger" onClick={logout}>
-                Logout
-              </button>
-            )}
-          </div>
+return (
+  <div className="shell">
+    <div className="container shellInner">
+      <div className="shellTop">
+        <div>
+          <div className="shellKicker">TaskFlow • Admin Console</div>
+          <h1 className="shellTitle">{title}</h1>
+          {subtitle && <p className="shellSub">{subtitle}</p>}
         </div>
 
-        {children}
+        <div className="shellActions">
+          {right}
+          {showLogout && (
+            <button className="aBtn aBtnOutline" onClick={logout}>
+              Logout
+            </button>
+          )}
+        </div>
       </div>
+
+      {children}
     </div>
-  );
+  </div>
+);
 }

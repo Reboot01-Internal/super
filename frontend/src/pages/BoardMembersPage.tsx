@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import AppShell from "../components/AppShell";
+import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
+import "../admin.css";
 
 type Member = {
   user_id: number;
@@ -47,8 +48,9 @@ export default function BoardMembersPage() {
   }
 
   useEffect(() => {
-    if (!boardID) return;
+    if (!boardID || Number.isNaN(boardID)) return;
     loadMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardID]);
 
   async function searchStudents() {
@@ -85,116 +87,158 @@ export default function BoardMembersPage() {
   }
 
   return (
-    <AppShell
+    <AdminLayout
+      active="supervisors"
       title={`Board #${boardID} Members`}
       subtitle="Manage who can access this board."
-      showLogout
       right={
         <>
-          <button className="btn" onClick={() => nav(-1)}>
+          <button className="admGhostBtn" onClick={() => nav(-1)}>
             Back
           </button>
-          <button className="btn primary" onClick={loadMembers}>
-            Refresh
+          <button className="admPrimaryBtn" onClick={loadMembers} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </>
       }
     >
-      <div className="grid2">
-        {/* Add member */}
-        <div className="glass" style={{ padding: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 900 }}>Add Student</div>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Search by name or email, then add to this board.
-          </div>
-
-          <div style={{ height: 14 }} />
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              className="input"
-              placeholder="Search students..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <button className="btn primary" onClick={searchStudents} disabled={searching}>
-              {searching ? "..." : "Search"}
-            </button>
-          </div>
-
-          {err && <div className="noteBad" style={{ marginTop: 10, fontSize: 13 }}>{err}</div>}
-          {msg && <div className="noteGood" style={{ marginTop: 10, fontSize: 13 }}>{msg}</div>}
-
-          <div style={{ height: 14 }} />
-
-          {results.length > 0 ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              {results.map((u) => (
-                <div key={u.id} className="glass" style={{ padding: 12, borderRadius: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div>
-                      <div style={{ fontWeight: 900 }}>{u.full_name}</div>
-                      <div style={{ color: "var(--muted)", fontSize: 13 }}>{u.email}</div>
-                    </div>
-                    <button className="btn" onClick={() => addMember(u.id)}>
-                      Add
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: "var(--muted2)", fontSize: 13 }}>
-              Search results will show here.
-            </div>
-          )}
-        </div>
-
-        {/* Members list */}
-        <div className="glass" style={{ padding: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 900 }}>Current Members</div>
-              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                {loading ? "Loading..." : `${members.length} member(s)`}
+      <section className="admGrid">
+        {/* Left: Add member */}
+        <div className="admCol">
+          <section className="admCard">
+            <div className="admCardTitleRow">
+              <div>
+                <div className="admCardTitle">Add Student</div>
+                <div className="admMuted">Search by name or email, then add to this board.</div>
               </div>
+              <span className="admPill">Members</span>
             </div>
-            <span className="badge">Access</span>
-          </div>
 
-          <div style={{ height: 14 }} />
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div className="admSearch" style={{ minWidth: 0, width: "100%" }}>
+                <span className="admSearchIcon">⌕</span>
+                <input
+                  className="admSearchInput"
+                  placeholder="Search students..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
 
-          {loading ? (
-            <div style={{ color: "var(--muted)" }}>Loading members...</div>
-          ) : members.length === 0 ? (
-            <div style={{ color: "var(--muted)" }}>No members yet.</div>
-          ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Board Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.user_id}>
-                    <td>
-                      <div style={{ fontWeight: 900 }}>{m.full_name}</div>
-                      <div style={{ color: "var(--muted2)", fontSize: 12 }}>{m.email}</div>
-                    </td>
-                    <td style={{ color: "var(--muted)" }}>{m.role}</td>
-                    <td>
-                      <span className="badge">{m.role_in_board}</span>
-                    </td>
-                  </tr>
+              <button
+                className="admPrimaryBtn"
+                onClick={searchStudents}
+                disabled={searching || !q.trim()}
+              >
+                {searching ? "Searching..." : "Search"}
+              </button>
+            </div>
+
+            {err && (
+              <div className="admAlert admAlertBad" style={{ marginTop: 12 }}>
+                {err}
+              </div>
+            )}
+            {msg && (
+              <div className="admAlert admAlertGood" style={{ marginTop: 12 }}>
+                {msg}
+              </div>
+            )}
+
+            <div style={{ height: 14 }} />
+
+            {results.length > 0 ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                {results.map((u) => (
+                  <div
+                    key={u.id}
+                    className="admCard"
+                    style={{
+                      padding: 14,
+                      boxShadow: "none",
+                      borderRadius: 16,
+                      background: "#fbfcff",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 950 }}>{u.full_name}</div>
+                        <div className="admTdMuted" style={{ marginTop: 4 }}>
+                          {u.email}
+                        </div>
+                        <div className="admTdMuted" style={{ marginTop: 6, fontSize: 12 }}>
+                          role: <span className="admMono">{u.role}</span>
+                        </div>
+                      </div>
+
+                      <button className="admSoftBtn" onClick={() => addMember(u.id)}>
+                        Add
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </div>
+            ) : (
+              <div className="admTdMuted" style={{ fontSize: 13 }}>
+                Search results will show here.
+              </div>
+            )}
+          </section>
         </div>
-      </div>
-    </AppShell>
+
+        {/* Right: Members list */}
+        <div className="admCol">
+          <section className="admCard">
+            <div className="admCardTitleRow">
+              <div>
+                <div className="admCardTitle">Current Members</div>
+                <div className="admMuted">
+                  {loading ? "Loading..." : `${members.length} member(s)`}
+                </div>
+              </div>
+              <span className="admPill">Access</span>
+            </div>
+
+            {loading ? (
+              <div className="admMuted">Loading members...</div>
+            ) : members.length === 0 ? (
+              <div className="admMuted">No members yet.</div>
+            ) : (
+              <div className="admTableWrap">
+                <table className="admTable">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Board Role</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((m) => (
+                      <tr key={m.user_id}>
+                        <td>
+                          <div style={{ fontWeight: 950 }}>{m.full_name}</div>
+                          <div className="admTdMuted" style={{ fontSize: 12, marginTop: 3 }}>
+                            {m.email}
+                          </div>
+                        </td>
+
+                        <td className="admTdMuted">
+                          <span className="admMono">{m.role}</span>
+                        </td>
+
+                        <td>
+                          <span className="admPill">{m.role_in_board}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+    </AdminLayout>
   );
 }

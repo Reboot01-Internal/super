@@ -4,7 +4,7 @@
   --card: rgba(255,255,255,0.08);
   --card2: rgba(255,255,255,0.06);
   --border: rgba(255,255,255,0.12);
-  --text: rgba(255,255,255,0.92);
+  --text: rgba(27, 26, 26, 0.92);
   --muted: rgba(255,255,255,0.65);
   --muted2: rgba(255,255,255,0.45);
 
@@ -332,4 +332,68 @@ a { color: inherit; text-decoration: none; }
   max-height: calc(100vh - 260px);
   overflow: auto;
   padding-right: 6px;
+}
+/* =========================================================
+   ADMIN (LIGHT THEME OVERRIDE)
+   Scope: only when the page contains .adm
+   ========================================================= */
+
+/* Switch page background to light */
+body:has(.adm){
+  background: #f4f6fb !important;
+  color: #0f172a !important;
+}
+
+/* Make links normal on admin */
+body:has(.adm) a{
+  color: inherit !important;
+}
+
+/* Force all admin text to be dark (prevents inheritance issues) */
+.adm, .adm *{
+  color: #0f172a !important;
+}
+
+/* Muted text inside admin */
+.adm .admMuted,
+.adm .admTdMuted{
+  color: #64748b !important;
+}
+
+/* Inputs + placeholders inside admin */
+.adm input,
+.adm select,
+.adm textarea{
+  color: #0f172a !important;
+  background: #fbfcff !important;
+  border: 1px solid #e6eaf2 !important;
+}
+
+.adm input::placeholder,
+.adm textarea::placeholder{
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* Table header and lines */
+.adm .admTable thead th{
+  color: #334155 !important;
+  background: #f8fafc !important;
+}
+
+.adm .admTable tbody td{
+  color: #0f172a !important;
+}
+
+/* Buttons: keep primary white text */
+.adm .admPrimaryBtn{
+  color: #fff !important;
+}
+
+/* Sidebar + cards should stay white */
+.adm .admSide,
+.adm .admCard,
+.adm .admSearch,
+.adm .admIconBtn{
+  background: #ffffff !important;
 }

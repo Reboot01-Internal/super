@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import AppShell from "../components/AppShell";
+import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
+import "../admin.css";
 
 type Board = {
   id: number;
@@ -40,7 +41,7 @@ export default function SupervisorFilePage() {
   }
 
   useEffect(() => {
-    if (!fileID) return;
+    if (!fileID || Number.isNaN(fileID)) return;
     loadBoards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileID]);
@@ -73,123 +74,156 @@ export default function SupervisorFilePage() {
   }
 
   return (
-    <AppShell
+    <AdminLayout
+      active="supervisors"
       title={`Supervisor File #${fileID}`}
       subtitle="Boards in this workspace"
-      showLogout
       right={
         <>
-          <button className="btn" onClick={() => nav("/admin/supervisors")}>
+          <button className="admGhostBtn" onClick={() => nav("/admin/supervisors")}>
             Back
           </button>
-          <button className="btn primary" onClick={loadBoards}>
-            Refresh
+          <button className="admPrimaryBtn" onClick={loadBoards} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </>
       }
     >
-      <div className="grid2">
-        {/* Create Board */}
-        <div className="glass" style={{ padding: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 900 }}>Create Board</div>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            A board is where columns and tasks will live.
-          </div>
-
-          <div style={{ height: 14 }} />
-
-          <form onSubmit={createBoard} style={{ display: "grid", gap: 12 }}>
-            <input
-              className="input"
-              placeholder="Board name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-
-            {err && (
-              <div className="noteBad" style={{ fontSize: 13 }}>
-                {err}
+      {/* same 2-column layout as dashboard */}
+      <section className="admGrid">
+        {/* Left: Create Board */}
+        <div className="admCol">
+          <section className="admCard">
+            <div className="admCardTitleRow">
+              <div>
+                <div className="admCardTitle">Create Board</div>
+                <div className="admMuted">A board is where columns and tasks will live.</div>
               </div>
-            )}
-            {msg && (
-              <div className="noteGood" style={{ fontSize: 13 }}>
-                {msg}
-              </div>
-            )}
+              <span className="admPill">Boards</span>
+            </div>
 
-            <button className="btn primary" disabled={creating}>
-              {creating ? "Creating..." : "Create Board"}
-            </button>
-          </form>
+            <form onSubmit={createBoard} className="admForm">
+              <div className="admRow2">
+                <label className="admField" style={{ gridColumn: "1 / -1" }}>
+                  <span className="admLabel">Board name</span>
+                  <input
+                    className="admInput"
+                    placeholder="e.g. Sprint Planning"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </label>
+
+                <label className="admField" style={{ gridColumn: "1 / -1" }}>
+                  <span className="admLabel">Description</span>
+                  <input
+                    className="admInput"
+                    placeholder="Optional description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {err && <div className="admAlert admAlertBad">{err}</div>}
+              {msg && <div className="admAlert admAlertGood">{msg}</div>}
+
+              <div className="admFormActions">
+                <button className="admPrimaryBtn" disabled={creating || !name.trim()}>
+                  {creating ? "Creating..." : "Create Board"}
+                </button>
+
+                <button
+                  type="button"
+                  className="admSoftBtn"
+                  onClick={() => {
+                    setName("");
+                    setDescription("");
+                    setErr("");
+                    setMsg("");
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
 
-        {/* Boards List */}
-        <div className="glass" style={{ padding: 18 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 900 }}>Boards</div>
-              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                {loading ? "Loading..." : `${boards.length} board(s)`}
-              </div>
-            </div>
-            <span className="badge">Boards</span>
-          </div>
-
-          <div style={{ height: 14 }} />
-
-          {loading ? (
-            <div style={{ color: "var(--muted)" }}>Loading boards...</div>
-          ) : boards.length === 0 ? (
-            <div style={{ color: "var(--muted)" }}>No boards yet.</div>
-          ) : (
-            <div style={{ display: "grid", gap: 10 }}>
-              {boards.map((b) => (
-                <div key={b.id} className="glass" style={{ padding: 14, borderRadius: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 950 }}>{b.name}</div>
-                      {b.description && (
-                        <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                          {b.description}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ✅ UPDATED ACTIONS: Open + Members + ID */}
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <button className="btn" onClick={() => nav(`/admin/boards/${b.id}`)}>
-                        Open
-                      </button>
-
-                      <button className="btn" onClick={() => nav(`/admin/boards/${b.id}/members`)}>
-                        Members
-                      </button>
-
-                      <span className="badge">#{b.id}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 10, color: "var(--muted2)", fontSize: 12 }}>
-                    Created: {b.created_at}
-                  </div>
+        {/* Right: Boards List */}
+        <div className="admCol">
+          <section className="admCard">
+            <div className="admCardTitleRow">
+              <div>
+                <div className="admCardTitle">Boards</div>
+                <div className="admMuted">
+                  {loading ? "Loading..." : `${boards.length} board(s)`}
                 </div>
-              ))}
+              </div>
+
+              <button className="admGhostBtn" onClick={loadBoards} disabled={loading}>
+                Refresh
+              </button>
             </div>
-          )}
+
+            {loading ? (
+              <div className="admMuted">Loading boards...</div>
+            ) : boards.length === 0 ? (
+              <div className="admMuted">No boards yet.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {boards.map((b) => (
+                  <div
+                    key={b.id}
+                    className="admCard"
+                    style={{
+                      padding: 14,
+                      boxShadow: "none",
+                      borderRadius: 16,
+                      background: "#fbfcff",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 950 }}>{b.name}</div>
+
+                        {b.description ? (
+                          <div className="admMuted" style={{ marginTop: 6 }}>
+                            {b.description}
+                          </div>
+                        ) : (
+                          <div className="admMuted" style={{ marginTop: 6 }}>
+                            No description
+                          </div>
+                        )}
+
+                        <div className="admTdMuted" style={{ marginTop: 10, fontSize: 12 }}>
+                          Created: {new Date(b.created_at).toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <button className="admSoftBtn" onClick={() => nav(`/admin/boards/${b.id}`)}>
+                          Open
+                        </button>
+
+                        <button
+                          className="admSoftBtn"
+                          onClick={() => nav(`/admin/boards/${b.id}/members`)}
+                        >
+                          Members
+                        </button>
+
+                        <span className="admPill">#{b.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-      </div>
-    </AppShell>
+      </section>
+    </AdminLayout>
   );
 }

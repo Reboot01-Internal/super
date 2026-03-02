@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import AppShell from "../components/AppShell";
+import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
+import "../admin.css";
 
 import {
   DndContext,
@@ -13,12 +14,7 @@ import {
   useDroppable,
   closestCorners,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-  useSortable,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 import CardModal from "../components/CardModal";
@@ -56,8 +52,19 @@ function initials(name: string) {
 function ClockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" strokeWidth="2" opacity="0.9" />
-      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        opacity="0.9"
+      />
+      <path
+        d="M12 6v6l4 2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -72,7 +79,11 @@ function isDateToday(due: string) {
   const today = new Date();
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dueD = new Date(due + "T00:00:00");
-  return dueD.getFullYear() === t.getFullYear() && dueD.getMonth() === t.getMonth() && dueD.getDate() === t.getDate();
+  return (
+    dueD.getFullYear() === t.getFullYear() &&
+    dueD.getMonth() === t.getMonth() &&
+    dueD.getDate() === t.getDate()
+  );
 }
 
 function CardItem({
@@ -95,9 +106,7 @@ function CardItem({
     opacity: sortable.isDragging ? 0.7 : 1,
   };
 
-  const progressPct =
-    preview && preview.total > 0 ? Math.round((preview.done / preview.total) * 100) : 0;
-
+  const progressPct = preview && preview.total > 0 ? Math.round((preview.done / preview.total) * 100) : 0;
   const due = card.due_date || "";
 
   return (
@@ -109,11 +118,7 @@ function CardItem({
           </div>
 
           <div style={{ flex: 1, minWidth: 0, cursor: "default" }}>
-            <div
-              className="cardTitle"
-              onDoubleClick={() => onOpen(card.id)}
-              title="Double click to open"
-            >
+            <div className="cardTitle" onDoubleClick={() => onOpen(card.id)} title="Double click to open">
               {card.title}
             </div>
 
@@ -154,7 +159,7 @@ function CardItem({
                 ))}
                 {(preview?.assignees?.length ?? 0) > 3 && (
                   <div className="avatarDot" title="More">
-                    +{(preview!.assignees.length - 3)}
+                    +{preview!.assignees.length - 3}
                   </div>
                 )}
               </div>
@@ -162,9 +167,7 @@ function CardItem({
           </div>
         </div>
 
-        <div style={{ color: "var(--muted2)", fontSize: 11 }}>
-          Double click to open
-        </div>
+        <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 11 }}>Double click to open</div>
       </div>
     </div>
   );
@@ -189,10 +192,10 @@ function ListColumn({
   });
 
   return (
-    <div className="column" style={{ borderColor: drop.isOver ? "rgba(34,211,238,0.35)" : undefined }}>
+    <div className="column" style={{ borderColor: drop.isOver ? "rgba(37,99,235,0.35)" : undefined }}>
       <div className="columnHeader">
         <div className="columnTitle">{list.title}</div>
-        <button className="btn" onClick={() => onAddCard(list.id)}>
+        <button className="admSoftBtn" onClick={() => onAddCard(list.id)}>
           + Card
         </button>
       </div>
@@ -205,9 +208,7 @@ function ListColumn({
         </SortableContext>
 
         {cards.length === 0 && (
-          <div style={{ color: "var(--muted2)", fontSize: 13, padding: "10px 6px" }}>
-            Drop cards here
-          </div>
+          <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: "10px 6px" }}>Drop cards here</div>
         )}
       </div>
     </div>
@@ -268,7 +269,7 @@ export default function BoardPage() {
   }
 
   useEffect(() => {
-    if (!boardID) return;
+    if (!boardID || Number.isNaN(boardID)) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardID]);
@@ -414,89 +415,91 @@ export default function BoardPage() {
     }
   }
 
+  const pageTitle = data ? data.name : `Board #${boardID}`;
+
   return (
-    <AppShell
-      title={data ? data.name : `Board #${boardID}`}
+    <AdminLayout
+      active="supervisors"
+      title={pageTitle}
       subtitle="Double click a card to open"
-      showLogout
       right={
         <>
-          <button className="btn" onClick={() => nav(-1)}>Back</button>
-          <button className="btn primary" onClick={load}>Refresh</button>
+          <button className="admGhostBtn" onClick={() => nav(-1)}>
+            Back
+          </button>
+          <button className="admPrimaryBtn" onClick={load} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </>
       }
     >
-      <div className="container">
-        <CardModal
-          open={isCardModalOpen}
-          cardId={openCardId}
-          onClose={() => setIsCardModalOpen(false)}
-          onSaved={async () => {
-            await load();
-            if (data) await loadPreviews(data.cards);
-          }}
-        />
+      <CardModal
+        open={isCardModalOpen}
+        cardId={openCardId}
+        onClose={() => setIsCardModalOpen(false)}
+        onSaved={async () => {
+          await load();
+          if (data) await loadPreviews(data.cards);
+        }}
+      />
 
-        {err && <div className="noteBad" style={{ marginBottom: 12 }}>{err}</div>}
-        {loading && <div style={{ color: "var(--muted)" }}>Loading board...</div>}
+      {err && (
+        <div className="admAlert admAlertBad" style={{ marginBottom: 12 }}>
+          {err}
+        </div>
+      )}
 
-        {!loading && data && (
-          <div className="boardWrap">
-            <div className="glass" style={{ padding: 14 }}>
-              <form onSubmit={createList} style={{ display: "flex", gap: 10 }}>
-                <input
-                  className="input"
-                  placeholder="Add a list (To Do, Doing, Done...)"
-                  value={newListTitle}
-                  onChange={(e) => setNewListTitle(e.target.value)}
-                />
-                <button className="btn primary" disabled={creatingList}>
-                  {creatingList ? "..." : "Add"}
-                </button>
-              </form>
-            </div>
+      {loading && <div className="admMuted">Loading board...</div>}
 
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCorners}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-            >
-              <div className="boardScroller">
-                <div className="columnsRow">
-                  {listsSorted.map((l) => (
-                    <ListColumn
-                      key={l.id}
-                      list={l}
-                      cards={cardsByList[l.id] ?? []}
-                      previews={previews}
-                      onAddCard={createCard}
-                      onOpenCard={onOpenCard}
-                    />
-                  ))}
-
-                  {listsSorted.length === 0 && (
-                    <div className="column">
-                      <div className="columnHeader">
-                        <div className="columnTitle">No lists yet</div>
-                      </div>
-                      <div style={{ color: "var(--muted2)", fontSize: 13, padding: 10 }}>
-                        Add your first list above.
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </DndContext>
-
-            {activeCardId && (
-              <div style={{ color: "var(--muted2)", fontSize: 12 }}>
-                Moving card #{activeCardId}
-              </div>
-            )}
+      {!loading && data && (
+        <div className="boardWrap">
+          {/* Add list bar */}
+          <div className="admCard" style={{ padding: 14 }}>
+            <form onSubmit={createList} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <input
+                className="admInput"
+                placeholder="Add a list (To Do, Doing, Done...)"
+                value={newListTitle}
+                onChange={(e) => setNewListTitle(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button className="admPrimaryBtn" disabled={creatingList || !newListTitle.trim()}>
+                {creatingList ? "..." : "Add"}
+              </button>
+            </form>
           </div>
-        )}
-      </div>
-    </AppShell>
+
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+            <div className="boardScroller">
+              <div className="columnsRow">
+                {listsSorted.map((l) => (
+                  <ListColumn
+                    key={l.id}
+                    list={l}
+                    cards={cardsByList[l.id] ?? []}
+                    previews={previews}
+                    onAddCard={createCard}
+                    onOpenCard={onOpenCard}
+                  />
+                ))}
+
+                {listsSorted.length === 0 && (
+                  <div className="column">
+                    <div className="columnHeader">
+                      <div className="columnTitle">No lists yet</div>
+                    </div>
+                    <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: 10 }}>
+                      Add your first list above.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DndContext>
+
+          {activeCardId && <div className="admTdMuted">Moving card #{activeCardId}</div>}
+        </div>
+      )}
+    </AdminLayout>
   );
 }
