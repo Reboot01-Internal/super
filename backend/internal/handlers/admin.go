@@ -32,6 +32,8 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 	req.FullName = strings.TrimSpace(req.FullName)
+	req.Password = strings.TrimSpace(req.Password)
+	req.Role = strings.TrimSpace(strings.ToLower(req.Role))
 
 	if req.FullName == "" || req.Email == "" || req.Password == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "full_name, email, password required"})

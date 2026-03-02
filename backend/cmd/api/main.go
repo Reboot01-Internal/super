@@ -67,7 +67,6 @@ func main() {
 	// Auth
 	r.Post("/auth/login", api.Login)
 
-	// ✅ Protected routes (use With() to apply middleware)
 	r.With(middleware.RequireAuth(api.JWTSecret(), conn)).
 		Get("/auth/me", api.Me)
 
@@ -113,10 +112,20 @@ ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
 }
 
 func runMigrations(conn *sql.DB) error {
-	sqlBytes, err := os.ReadFile("migrations/001_init.sql")
-	if err != nil {
-		return err
+	files := []string{
+		"migrations/001_init.sql",
+		"migrations/002_activity.sql",
 	}
-	_, err = conn.Exec(string(sqlBytes))
-	return err
+
+	for _, f := range files {
+		sqlBytes, err := os.ReadFile(f)
+		if err != nil {
+			return err
+		}
+		if _, err := conn.Exec(string(sqlBytes)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

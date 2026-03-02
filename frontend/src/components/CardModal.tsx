@@ -34,10 +34,21 @@ type BoardMember = {
   role_in_board: string;
 };
 
+type Activity = {
+  id: number;
+  card_id: number;
+  actor_user_id: number;
+  actor_name: string;
+  action: string;
+  meta: string;
+  created_at: string;
+};
+
 type CardFull = {
   card: Card;
   subtasks: Subtask[];
   assignees: Assignee[];
+  activities: Activity[];
   board_id: number;
 };
 
@@ -75,13 +86,7 @@ function ClockIcon({ size = 14 }: { size?: number }) {
         strokeWidth="2"
         opacity="0.9"
       />
-      <path
-        d="M12 6v6l4 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -89,15 +94,41 @@ function ClockIcon({ size = 14 }: { size?: number }) {
 function CheckIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ActivityIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
-        d="M20 6 9 17l-5-5"
+        d="M4 13.5 8.2 9.3l3.2 3.2L19.6 4.3"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
+}
+
+function formatActivity(a: Activity) {
+  // nice labels
+  const map: Record<string, string> = {
+    card_created: "Card created",
+    card_updated: "Card updated",
+    card_moved: "Card moved",
+    cards_reordered: "Cards reordered",
+    subtask_created: "Subtask added",
+    subtask_toggled: "Subtask toggled",
+    subtask_deleted: "Subtask removed",
+    subtask_due_updated: "Subtask due updated",
+    assignee_added: "Assignee added",
+    assignee_removed: "Assignee removed",
+  };
+  return map[a.action] || a.action;
 }
 
 export default function CardModal({
@@ -119,6 +150,7 @@ export default function CardModal({
   const [card, setCard] = useState<Card | null>(null);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [boardId, setBoardId] = useState<number | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
 
@@ -135,10 +167,7 @@ export default function CardModal({
 
   const assigneeIds = useMemo(() => new Set(assignees.map((a) => a.user_id)), [assignees]);
 
-  const isOverdue = useMemo(
-    () => (card?.due_date ? isDateOverdue(card.due_date) : false),
-    [card?.due_date]
-  );
+  const isOverdue = useMemo(() => (card?.due_date ? isDateOverdue(card.due_date) : false), [card?.due_date]);
 
   const progress = useMemo(() => {
     if (subtasks.length === 0) return null;
@@ -148,10 +177,7 @@ export default function CardModal({
     return { done, total, pct };
   }, [subtasks]);
 
-  const studentsOnly = useMemo(
-    () => boardMembers.filter((m) => m.role === "student"),
-    [boardMembers]
-  );
+  const studentsOnly = useMemo(() => boardMembers.filter((m) => m.role === "student"), [boardMembers]);
 
   const availableStudents = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
@@ -173,12 +199,13 @@ export default function CardModal({
     try {
       const full: CardFull = await apiFetch(`/admin/card/full?card_id=${cardId}`);
       setCard(full.card);
-      setSubtasks(full.subtasks);
-      setAssignees(full.assignees);
+      setSubtasks(full.subtasks || []);
+      setAssignees(full.assignees || []);
+      setActivities(full.activities || []);
       setBoardId(full.board_id);
 
       const members: BoardMember[] = await apiFetch(`/admin/board-members?board_id=${full.board_id}`);
-      setBoardMembers(members);
+      setBoardMembers(members || []);
     } catch (e: any) {
       setErr(e.message || "Failed to load card");
     } finally {
@@ -274,6 +301,8 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id, is_done: isDone }),
       });
       setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, is_done: isDone } : s)));
+      // refresh activities subtly
+      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask");
     }
@@ -290,6 +319,7 @@ export default function CardModal({
         method: "POST",
         body: JSON.stringify({ subtask_id: id, due_date: due || "" }),
       });
+      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask due date");
       await loadAll();
@@ -305,6 +335,7 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id }),
       });
       setSubtasks((prev) => prev.filter((s) => s.id !== id));
+      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to delete subtask");
     }
@@ -354,11 +385,7 @@ export default function CardModal({
           <button className="admGhostBtn" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="admPrimaryBtn"
-            onClick={saveCard}
-            disabled={saving || loading || !card?.title?.trim()}
-          >
+          <button className="admPrimaryBtn" onClick={saveCard} disabled={saving || loading || !card?.title?.trim()}>
             {saving ? "Saving..." : "Save"}
           </button>
         </>
@@ -368,8 +395,16 @@ export default function CardModal({
         <div className="admMuted">Loading...</div>
       ) : (
         <div className="modalBodyScroll">
-          {err && <div className="admAlert admAlertBad" style={{ marginBottom: 10 }}>{err}</div>}
-          {msg && <div className="admAlert admAlertGood" style={{ marginBottom: 10 }}>{msg}</div>}
+          {err && (
+            <div className="admAlert admAlertBad" style={{ marginBottom: 10 }}>
+              {err}
+            </div>
+          )}
+          {msg && (
+            <div className="admAlert admAlertGood" style={{ marginBottom: 10 }}>
+              {msg}
+            </div>
+          )}
 
           {!card ? (
             <div className="admMuted">No card loaded.</div>
@@ -424,8 +459,7 @@ export default function CardModal({
                   <div className="cmHead">
                     <div>
                       <div className="cmHeadTitle">
-                        <CheckIcon />
-                        Checklist
+                        <CheckIcon /> Checklist
                       </div>
                       <div className="cmHeadSub">
                         {progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}
@@ -467,8 +501,7 @@ export default function CardModal({
 
                     <div className="cmSplit">
                       <span className="admPill" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <ClockIcon />
-                        Due (optional)
+                        <ClockIcon /> Due (optional)
                       </span>
 
                       <input
@@ -496,11 +529,7 @@ export default function CardModal({
                         return (
                           <div key={s.id} className={`cmSubtaskRow ${doneAnimId === s.id ? "animDone" : ""}`}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <input
-                                type="checkbox"
-                                checked={s.is_done}
-                                onChange={(e) => toggleSubtask(s.id, e.target.checked)}
-                              />
+                              <input type="checkbox" checked={s.is_done} onChange={(e) => toggleSubtask(s.id, e.target.checked)} />
 
                               <div
                                 style={{
@@ -532,15 +561,7 @@ export default function CardModal({
                               </button>
                             </div>
 
-                            <div
-                              style={{
-                                marginTop: 10,
-                                display: "flex",
-                                gap: 10,
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                              }}
-                            >
+                            <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                               <div className="admTdMuted" style={{ fontSize: 12 }}>
                                 Subtask due date
                               </div>
@@ -563,6 +584,43 @@ export default function CardModal({
                     </div>
                   )}
                 </div>
+
+                {/* Activity */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle">
+                        <ActivityIcon /> Activity
+                      </div>
+                      <div className="cmHeadSub">Latest changes</div>
+                    </div>
+                    <span className="admPill">{activities.length}</span>
+                  </div>
+
+                  {activities.length === 0 ? (
+                    <div className="admTdMuted" style={{ fontSize: 13 }}>
+                      No activity yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {activities.slice(0, 25).map((a) => (
+                        <div key={a.id} className="admAlert" style={{ background: "#fbfcff" }}>
+                          <div style={{ fontWeight: 950, fontSize: 13 }}>
+                            {a.actor_name} — {formatActivity(a)}
+                          </div>
+                          {a.meta ? (
+                            <div className="admTdMuted" style={{ marginTop: 4 }}>
+                              {a.meta}
+                            </div>
+                          ) : null}
+                          <div className="admTdMuted" style={{ marginTop: 6, fontSize: 12 }}>
+                            {a.created_at}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* RIGHT */}
@@ -572,8 +630,7 @@ export default function CardModal({
                   <div className="cmHead">
                     <div>
                       <div className="cmHeadTitle">
-                        <ClockIcon />
-                        Card due date
+                        <ClockIcon /> Card due date
                       </div>
                       <div className="cmHeadSub">{isOverdue ? "Overdue" : " "}</div>
                     </div>

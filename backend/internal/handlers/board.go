@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"taskflow/internal/db"
+	"taskflow/internal/middleware"
 	"taskflow/internal/models"
 	"taskflow/internal/utils"
 )
@@ -122,6 +123,8 @@ func (a *API) AdminCreateCard(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to create card"})
 		return
 	}
+	  actor := middleware.UserID(r)
+  _ = db.InsertCardActivity(a.conn, id, actor, "card_created", "Card created")
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
 }
@@ -154,6 +157,9 @@ func (a *API) AdminMoveCard(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to move card"})
 		return
 	}
+	actor := middleware.UserID(r)
+meta := "Moved to list_id=" + strconv.FormatInt(req.ToListID, 10)
+_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_moved", meta)
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -237,6 +243,8 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to update card"})
 		return
 	}
+	actor := middleware.UserID(r)
+_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -248,48 +256,56 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 //
 
 func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
-	cardIDStr := r.URL.Query().Get("card_id")
-	if cardIDStr == "" {
-		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id required"})
-		return
-	}
+  cardIDStr := r.URL.Query().Get("card_id")
+  if cardIDStr == "" {
+    utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id required"})
+    return
+  }
 
-	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
-	if err != nil || cardID <= 0 {
-		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid card_id"})
-		return
-	}
+  cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
+  if err != nil || cardID <= 0 {
+    utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid card_id"})
+    return
+  }
 
-	c, err := db.GetCardWithDue(a.conn, cardID)
-	if err != nil {
-		utils.WriteJSON(w, http.StatusNotFound, map[string]any{"error": "card not found"})
-		return
-	}
+  c, err := db.GetCardWithDue(a.conn, cardID)
+  if err != nil {
+    utils.WriteJSON(w, http.StatusNotFound, map[string]any{"error": "card not found"})
+    return
+  }
 
-	boardID, err := db.GetBoardIDByCardID(a.conn, cardID)
-	if err != nil {
-		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-		return
-	}
+  boardID, err := db.GetBoardIDByCardID(a.conn, cardID)
+  if err != nil {
+    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+    return
+  }
 
-	subtasks, err := db.ListSubtasks(a.conn, cardID)
-	if err != nil {
-		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-		return
-	}
+  subtasks, err := db.ListSubtasks(a.conn, cardID)
+  if err != nil {
+    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+    return
+  }
 
-	assignees, err := db.ListAssignees(a.conn, cardID)
-	if err != nil {
-		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-		return
-	}
+  assignees, err := db.ListAssignees(a.conn, cardID)
+  if err != nil {
+    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+    return
+  }
 
-	utils.WriteJSON(w, http.StatusOK, models.CardFull{
-		Card:      c,
-		Subtasks:  subtasks,
-		Assignees: assignees,
-		BoardID:   boardID,
-	})
+  // ✅ ADD THIS
+  activities, err := db.ListCardActivity(a.conn, cardID,40)
+  if err != nil {
+    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+    return
+  }
+
+  utils.WriteJSON(w, http.StatusOK, models.CardFull{
+    Card:       c,
+    Subtasks:   subtasks,
+    Assignees:  assignees,
+    Activities: activities, // ✅ ADD THIS
+    BoardID:    boardID,
+  })
 }
 
 //
@@ -324,6 +340,8 @@ func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	actor := middleware.UserID(r)
+_ = db.InsertCardActivity(a.conn, req.CardID, actor, "subtask_created", req.Title)
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
 }
@@ -348,6 +366,11 @@ func (a *API) AdminToggleSubtask(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
+if err == nil {
+  actor := middleware.UserID(r)
+  _ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_toggled", "subtask_id="+strconv.FormatInt(req.SubtaskID,10))
+}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -372,6 +395,11 @@ func (a *API) AdminDeleteSubtask(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
+if err == nil {
+  actor := middleware.UserID(r)
+  _ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_deleted", "subtask_id="+strconv.FormatInt(req.SubtaskID,10))
+}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -396,6 +424,11 @@ func (a *API) AdminUpdateSubtaskDue(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
+if err == nil {
+  actor := middleware.UserID(r)
+  _ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_due_date_updated", "subtask_id="+strconv.FormatInt(req.SubtaskID,10))
+}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -427,6 +460,8 @@ func (a *API) AdminAddAssignee(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	actor := middleware.UserID(r)
+_ = db.InsertCardActivity(a.conn, req.CardID, actor, "assignee_added", "user_id="+strconv.FormatInt(req.UserID,10))
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -447,6 +482,8 @@ func (a *API) AdminRemoveAssignee(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}
+	actor := middleware.UserID(r)
+_ = db.InsertCardActivity(a.conn, req.CardID, actor, "assignee_removed", "user_id="+strconv.FormatInt(req.UserID,10))
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

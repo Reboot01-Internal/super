@@ -77,8 +77,9 @@ type CardAssignee struct {
 }
 
 type CardFull struct {
-	Card      Card           `json:"card"`
-	Subtasks  []CardSubtask  `json:"subtasks"`
-	Assignees []CardAssignee `json:"assignees"`
-	BoardID   int64          `json:"board_id"`
+	Card       Card           `json:"card"`
+	Subtasks   []CardSubtask   `json:"subtasks"`
+	Assignees  []CardAssignee  `json:"assignees"`
+	Activities []CardActivity  `json:"activities"`
+	BoardID    int64           `json:"board_id"`
 }
