@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"taskflow/internal/db"
-	"taskflow/internal/middleware"
 	"taskflow/internal/models"
 	"taskflow/internal/utils"
 )
@@ -108,7 +107,7 @@ func (a *API) AdminCreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, id, actor, "card_created", "Card created")
 
 	writeJSON(w, http.StatusCreated, map[string]any{"id": id})
@@ -137,7 +136,7 @@ func (a *API) AdminMoveCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	meta := "Moved to list_id=" + strconv.FormatInt(req.ToListID, 10)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_moved", meta)
 
@@ -168,7 +167,6 @@ func (a *API) AdminReorderCards(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
-
 
 type updateCardReq struct {
 	CardID      int64  `json:"card_id"`
@@ -235,7 +233,7 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

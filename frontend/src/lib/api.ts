@@ -1,26 +1,17 @@
 const API_URL = "http://localhost:8080";
 
-export function getToken() {
-  return localStorage.getItem("token");
-}
+// ✅ No token/JWT anymore
 
-export function setToken(token: string) {
-  localStorage.setItem("token", token);
-}
-
-export function clearToken() {
-  localStorage.removeItem("token");
+export function clearAuth() {
+  // keep only what you still use
   localStorage.removeItem("role");
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
-  const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 

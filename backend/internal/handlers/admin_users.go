@@ -7,7 +7,7 @@ import (
 
 	"taskflow/internal/auth"
 	"taskflow/internal/db"
-	"taskflow/internal/middleware"
+	// "taskflow/internal/middleware"
 	"taskflow/internal/models"
 	"taskflow/internal/utils"
 )
@@ -114,7 +114,7 @@ func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdBy := middleware.UserID(r)
+	createdBy := actorID(r)
 	boardID, err := db.CreateBoard(a.conn, req.SupervisorFileID, req.Name, req.Description, createdBy)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to create board")

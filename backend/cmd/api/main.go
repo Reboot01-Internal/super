@@ -13,15 +13,10 @@ import (
 
 	"taskflow/internal/db"
 	"taskflow/internal/handlers"
-	"taskflow/internal/middleware"
 )
 
 func main() {
 	_ = godotenv.Load()
-
-	if os.Getenv("JWT_SECRET") == "" {
-		log.Fatal("JWT_SECRET missing in .env")
-	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -51,8 +46,10 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+AllowedOrigins: []string{
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+},		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -62,18 +59,13 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// auth
+	// auth (hardcoded)
 	r.Post("/auth/login", api.Login)
-	r.With(middleware.RequireAuth(api.JWTSecret(), conn)).
-		Get("/auth/me", api.Me)
+	r.Get("/auth/me", api.Me)
 
-	// admin
+	// admin (NO AUTH now)
 	r.Route("/admin", func(ar chi.Router) {
-		ar.Use(middleware.RequireAuth(api.JWTSecret(), conn))
-		ar.Use(middleware.RequireRole("admin"))
-
 		ar.Post("/users", api.AdminCreateUser)
-
 		ar.Get("/users", api.AdminSearchUsers)
 
 		ar.Get("/supervisors", api.AdminListSupervisors)
@@ -131,18 +123,15 @@ func main() {
 		ar.Get("/eligible-users", api.AdminEligibleUsers)
 	})
 
-	// supervisor
+	// supervisor (NO AUTH now)
 	r.Route("/supervisor", func(sr chi.Router) {
-		sr.Use(middleware.RequireAuth(api.JWTSecret(), conn))
-		sr.Use(middleware.RequireRole("supervisor"))
-
 		sr.Get("/board-members", api.AdminListBoardMembers)
 		sr.Post("/board-members", api.SupervisorAddBoardMember)
 		sr.Get("/eligible-students", api.SupervisorEligibleStudents)
 	})
 
 	log.Println("API running on http://localhost:" + port)
-	log.Println("Seed Admin: admin@local.test / Admin123!")
+	log.Println("Hardcoded login enabled (NO JWT)")
 
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }

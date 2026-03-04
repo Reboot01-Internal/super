@@ -26,9 +26,16 @@ export default function AdminLayout({
   const nav = useNavigate();
 
   function logout() {
+    // ✅ remove the keys you actually use now
+    localStorage.removeItem("jwt");
+    localStorage.removeItem("role");
+
+    // (optional) clear old leftovers if they exist
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    nav("/login");
+
+    // ✅ go to login
+    nav("/login", { replace: true });
   }
 
   return (
@@ -41,14 +48,10 @@ export default function AdminLayout({
             <div>
               <div className="text-[13px] font-bold text-slate-500">Welcome back</div>
 
-              <div className="mt-1 text-[28px] font-black tracking-[-0.6px]">
-                {title}
-              </div>
+              <div className="mt-1 text-[28px] font-black tracking-[-0.6px]">{title}</div>
 
               {subtitle ? (
-                <div className="mt-1 text-[14px] font-semibold text-slate-500">
-                  {subtitle}
-                </div>
+                <div className="mt-1 text-[14px] font-semibold text-slate-500">{subtitle}</div>
               ) : null}
             </div>
 

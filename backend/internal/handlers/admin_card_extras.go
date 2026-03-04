@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"taskflow/internal/db"
-	"taskflow/internal/middleware"
 	"taskflow/internal/utils"
 )
 
@@ -56,7 +55,7 @@ func (a *API) SupervisorEligibleStudents(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	if actor != supID {
 		writeErr(w, http.StatusForbidden, "not your board")
 		return
@@ -91,7 +90,7 @@ func (a *API) SupervisorAddBoardMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	if actor != boardSupID {
 		writeErr(w, http.StatusForbidden, "not your board")
 		return
@@ -204,7 +203,7 @@ func (a *API) AdminAddCardLabel(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "label_added", "label_id="+strconv.FormatInt(req.LabelID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -223,7 +222,7 @@ func (a *API) AdminRemoveCardLabel(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "label_removed", "label_id="+strconv.FormatInt(req.LabelID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -251,7 +250,7 @@ func (a *API) AdminAddComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	id, err := db.CreateCardComment(a.conn, req.CardID, actor, req.Body)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed")
@@ -283,7 +282,7 @@ func (a *API) AdminUpdateComment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "comment_updated", "comment_id="+strconv.FormatInt(req.CommentID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -307,7 +306,7 @@ func (a *API) AdminDeleteComment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "comment_deleted", "comment_id="+strconv.FormatInt(req.CommentID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -364,7 +363,7 @@ func (a *API) AdminUploadAttachment(w http.ResponseWriter, r *http.Request) {
 		mime = "application/octet-stream"
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	attID, err := db.InsertAttachment(a.conn, cardID, actor, hdr.Filename, stored, mime, n)
 	if err != nil {
 		_ = os.Remove(dstPath)
@@ -427,7 +426,7 @@ func (a *API) AdminDeleteAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "attachment_deleted", "attachment_id="+strconv.FormatInt(req.AttachmentID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -454,7 +453,7 @@ func (a *API) AdminCreateReminder(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "card_id and remind_at required")
 		return
 	}
-	userID := middleware.UserID(r)
+	userID := actorID(r)
 
 	id, err := db.CreateReminder(a.conn, req.CardID, userID, req.RemindAt)
 	if err != nil {
@@ -485,7 +484,7 @@ func (a *API) AdminDeleteReminder(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "reminder_deleted", "reminder_id="+strconv.FormatInt(req.ReminderID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -523,7 +522,7 @@ func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "subtask_created", req.Title)
 	writeJSON(w, http.StatusCreated, map[string]any{"id": id})
 }
@@ -552,7 +551,7 @@ func (a *API) AdminToggleSubtask(w http.ResponseWriter, r *http.Request) {
 
 	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
 	if err == nil {
-		actor := middleware.UserID(r)
+		actor := actorID(r)
 		_ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_toggled", "subtask_id="+strconv.FormatInt(req.SubtaskID, 10))
 	}
 
@@ -582,7 +581,7 @@ func (a *API) AdminDeleteSubtask(w http.ResponseWriter, r *http.Request) {
 
 	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
 	if err == nil {
-		actor := middleware.UserID(r)
+		actor := actorID(r)
 		_ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_deleted", "subtask_id="+strconv.FormatInt(req.SubtaskID, 10))
 	}
 
@@ -613,7 +612,7 @@ func (a *API) AdminUpdateSubtaskDue(w http.ResponseWriter, r *http.Request) {
 
 	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
 	if err == nil {
-		actor := middleware.UserID(r)
+		actor := actorID(r)
 		_ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_due_date_updated", "subtask_id="+strconv.FormatInt(req.SubtaskID, 10))
 	}
 
@@ -648,7 +647,7 @@ func (a *API) AdminAddAssignee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "assignee_added", "user_id="+strconv.FormatInt(req.UserID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -670,7 +669,7 @@ func (a *API) AdminRemoveAssignee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := middleware.UserID(r)
+	actor := actorID(r)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "assignee_removed", "user_id="+strconv.FormatInt(req.UserID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

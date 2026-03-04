@@ -2,18 +2,10 @@ package handlers
 
 import (
 	"net/http"
-	"os"
 	"strings"
 
-	"taskflow/internal/auth"
-	"taskflow/internal/db"
-	"taskflow/internal/middleware"
 	"taskflow/internal/utils"
 )
-
-func (a *API) JWTSecret() string {
-	return os.Getenv("JWT_SECRET")
-}
 
 type loginReq struct {
 	Email    string `json:"email"`
@@ -27,43 +19,40 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
-	if req.Email == "" || req.Password == "" {
-		writeErr(w, http.StatusBadRequest, "email and password required")
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	pass := req.Password
+
+	// ✅ HARD CODED USERS (change however you want)
+	// Admin
+	if email == "admin@local.test" && pass == "Admin123!" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"role": "admin",
+		})
 		return
 	}
 
-	id, _, passHash, role, active, err := db.GetUserByEmail(a.conn, req.Email)
-	if err != nil || !active || !auth.CheckPassword(passHash, req.Password) {
-		writeErr(w, http.StatusUnauthorized, "invalid credentials")
+	// Supervisor example
+	if email == "supervisor@local.test" && pass == "Supervisor123!" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"role": "supervisor",
+		})
 		return
 	}
 
-	token, err := auth.SignToken(a.JWTSecret(), id, role)
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "token error")
+	// Student example
+	if email == "student@local.test" && pass == "Student123!" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"role": "student",
+		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"token": token,
-		"role":  role,
-	})
+	writeErr(w, http.StatusUnauthorized, "invalid credentials")
 }
 
 func (a *API) Me(w http.ResponseWriter, r *http.Request) {
-	userID := middleware.UserID(r)
-
-	fullName, email, role, active, err := db.GetUserBasic(a.conn, userID)
-	if err != nil || !active {
-		writeErr(w, http.StatusUnauthorized, "user not found")
-		return
-	}
-
+	// No JWT anymore, so just return something simple
 	writeJSON(w, http.StatusOK, map[string]any{
-		"id":        userID,
-		"full_name": fullName,
-		"email":     email,
-		"role":      role,
+		"message": "no-auth mode",
 	})
 }
