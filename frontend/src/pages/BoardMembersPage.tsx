@@ -131,11 +131,7 @@ async function searchUsers() {
   setErr("");
   setSearching(true);
   try {
-    const url =
-      roleFilter === "all"
-        ? `/admin/users?q=${encodeURIComponent(q)}`
-        : `/admin/users?q=${encodeURIComponent(q)}&role=${encodeURIComponent(roleFilter)}`;
-
+const url = `/admin/eligible-users?board_id=${boardID}&role=${encodeURIComponent(roleFilter)}&q=${encodeURIComponent(q)}`;
     const res = await apiFetch(url);
     setResults(res);
   } catch (e: any) {
@@ -144,7 +140,6 @@ async function searchUsers() {
     setSearching(false);
   }
 }
-
   async function addMember(userId: number) {
     setMsg("");
     setErr("");
@@ -207,7 +202,7 @@ async function searchUsers() {
           <section className="admCard">
             <div className="admCardTitleRow" style={{ marginBottom: 0 }}>
               <div>
-                <div className="admCardTitle">Add students</div>
+                <div className="admCardTitle">Add members</div>
                 <div className="admMuted">Search by name or email, then add to this board.</div>
               </div>
               <span className="admPill">Add</span>

@@ -19,7 +19,6 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	// ensure secret exists
 	if os.Getenv("JWT_SECRET") == "" {
 		log.Fatal("JWT_SECRET missing in .env")
 	}
@@ -44,7 +43,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Seed admin if none exists
 	if err := db.SeedAdmin(conn); err != nil {
 		log.Fatal(err)
 	}
@@ -64,69 +62,93 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// Auth
 	r.Post("/auth/login", api.Login)
 
 	r.With(middleware.RequireAuth(api.JWTSecret(), conn)).
 		Get("/auth/me", api.Me)
 
-	// Admin routes
+	// -------------------------
+	// Admin routes (admin only)
+	// -------------------------
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Use(middleware.RequireAuth(api.JWTSecret(), conn))
 		ar.Use(middleware.RequireRole("admin"))
 
 		ar.Post("/users", api.AdminCreateUser)
+		ar.Get("/users", api.AdminSearchUsers) // keep your existing search
+
 		ar.Get("/supervisors", api.AdminListSupervisors)
 		ar.Post("/boards", api.AdminCreateBoard)
-ar.Get("/boards", api.AdminListBoardsByFile)
+		ar.Get("/boards", api.AdminListBoardsByFile)
 
-ar.Post("/board-members", api.AdminAddBoardMember)
-ar.Get("/board-members", api.AdminListBoardMembers)
+		ar.Post("/board-members", api.AdminAddBoardMember)
+		ar.Get("/board-members", api.AdminListBoardMembers)
 
-ar.Get("/students", api.AdminSearchStudents)
-ar.Get("/board", api.AdminGetBoardFull)
+		// NEW: eligible students for a board (assigned to that supervisor)
+		ar.Get("/eligible-students", api.AdminEligibleStudents)
 
-ar.Post("/lists", api.AdminCreateList)
-ar.Post("/cards", api.AdminCreateCard)
+		ar.Get("/students", api.AdminSearchStudents)
+		ar.Get("/board", api.AdminGetBoardFull)
 
-ar.Post("/cards/move", api.AdminMoveCard)
-ar.Post("/cards/reorder", api.AdminReorderCards)
-ar.Get("/card", api.AdminGetCard)
-ar.Put("/card", api.AdminUpdateCard)
-ar.Get("/card/full", api.AdminGetCardFull)
+		ar.Post("/lists", api.AdminCreateList)
+		ar.Post("/cards", api.AdminCreateCard)
 
-ar.Post("/card/subtasks", api.AdminCreateSubtask)
-ar.Post("/card/subtasks/toggle", api.AdminToggleSubtask)
-ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
+		ar.Post("/cards/move", api.AdminMoveCard)
+		ar.Post("/cards/reorder", api.AdminReorderCards)
+		ar.Get("/card", api.AdminGetCard)
+		ar.Put("/card", api.AdminUpdateCard)
+		ar.Get("/card/full", api.AdminGetCardFull)
 
-ar.Post("/card/assignees/add", api.AdminAddAssignee)
-ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
-ar.Post("/labels", api.AdminCreateLabel)
-ar.Get("/labels", api.AdminListLabels)
+		ar.Post("/card/subtasks", api.AdminCreateSubtask)
+		ar.Post("/card/subtasks/toggle", api.AdminToggleSubtask)
+		ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
 
-ar.Post("/card/labels/add", api.AdminAddCardLabel)
-ar.Post("/card/labels/remove", api.AdminRemoveCardLabel)
+		ar.Post("/card/assignees/add", api.AdminAddAssignee)
+		ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
 
-ar.Post("/card/comments", api.AdminAddComment)
-ar.Put("/card/comments", api.AdminUpdateComment)
-ar.Post("/card/comments/delete", api.AdminDeleteComment)
+		ar.Post("/labels", api.AdminCreateLabel)
+		ar.Get("/labels", api.AdminListLabels)
 
-ar.Post("/card/attachments/upload", api.AdminUploadAttachment)
-ar.Get("/card/attachments/download", api.AdminDownloadAttachment)
-ar.Post("/card/attachments/delete", api.AdminDeleteAttachment)
+		ar.Post("/card/labels/add", api.AdminAddCardLabel)
+		ar.Post("/card/labels/remove", api.AdminRemoveCardLabel)
 
-ar.Post("/card/reminders", api.AdminCreateReminder)
-ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
-ar.Get("/all-boards", api.AdminAllBoards)
-ar.Get("/assign/supervisors", api.AdminAssignListSupervisors)
+		ar.Post("/card/comments", api.AdminAddComment)
+		ar.Put("/card/comments", api.AdminUpdateComment)
+		ar.Post("/card/comments/delete", api.AdminDeleteComment)
+
+		ar.Post("/card/attachments/upload", api.AdminUploadAttachment)
+		ar.Get("/card/attachments/download", api.AdminDownloadAttachment)
+		ar.Post("/card/attachments/delete", api.AdminDeleteAttachment)
+
+		ar.Post("/card/reminders", api.AdminCreateReminder)
+		ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
+
+		ar.Get("/all-boards", api.AdminAllBoards)
+
+		ar.Get("/assign/supervisors", api.AdminAssignListSupervisors)
 		ar.Get("/assign/students", api.AdminAssignListStudents)
-		ar.Get("/assign/list", api.AdminAssignList)          // ?supervisor_id=
-		ar.Post("/assign", api.AdminAssignAdd)               // { supervisor_id, student_id }
-		ar.Post("/assign/remove", api.AdminAssignRemove)  
-		ar.Get("/users", api.AdminSearchUsers)
-
+		ar.Get("/assign/list", api.AdminAssignList)
+		ar.Post("/assign", api.AdminAssignAdd)
+		ar.Post("/assign/remove", api.AdminAssignRemove)
+		ar.Get("/eligible-users", api.AdminEligibleUsers)
 	})
-	
+
+	// -------------------------
+	// Supervisor routes (supervisor only)
+	// -------------------------
+	r.Route("/supervisor", func(sr chi.Router) {
+		sr.Use(middleware.RequireAuth(api.JWTSecret(), conn))
+		sr.Use(middleware.RequireRole("supervisor"))
+
+		// list members for a board (re-use same handler)
+		sr.Get("/board-members", api.AdminListBoardMembers)
+
+		// supervisor can add member but ONLY for their boards + assigned students only
+		sr.Post("/board-members", api.SupervisorAddBoardMember)
+
+		// eligible students for their board (assigned to them)
+		sr.Get("/eligible-students", api.SupervisorEligibleStudents)
+	})
 
 	log.Println("API running on http://localhost:" + port)
 	log.Println("Seed Admin: admin@local.test / Admin123!")
@@ -152,6 +174,5 @@ func runMigrations(conn *sql.DB) error {
 			return err
 		}
 	}
-
 	return nil
 }

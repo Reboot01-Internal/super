@@ -193,6 +193,39 @@ func (a *API) AdminAddBoardMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// board must have a supervisor
+	boardSupID, err := db.GetBoardSupervisorUserID(a.conn, req.BoardID)
+	if err != nil || boardSupID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "board has no supervisor"})
+		return
+	}
+
+targetRole, err := db.GetUserRole(a.conn, req.UserID)
+if err != nil {
+	utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid user"})
+	return
+}
+
+tr := strings.ToLower(strings.TrimSpace(targetRole))
+
+if tr != "student" && tr != "supervisor" {
+	utils.WriteJSON(w, http.StatusForbidden, map[string]any{"error": "only students or supervisors can be added"})
+	return
+}
+
+// ✅ only students require assignment check
+if tr == "student" {
+	ok, err := db.IsStudentAssignedToSupervisor(a.conn, boardSupID, req.UserID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, map[string]any{"error": "student not assigned to this supervisor"})
+		return
+	}
+}
+
 	req.RoleInBoard = strings.TrimSpace(req.RoleInBoard)
 	if req.RoleInBoard == "" {
 		req.RoleInBoard = "member"
@@ -205,7 +238,6 @@ func (a *API) AdminAddBoardMember(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
-
 /*
 ADMIN: List board members
 GET /admin/board-members?board_id=55

@@ -1,0 +1,107 @@
+package db
+
+import (
+	"database/sql"
+	"strings"
+
+	"taskflow/internal/models"
+)
+
+// Get supervisor user id that owns this board (via supervisor_files)
+func GetBoardSupervisorUserID(conn *sql.DB, boardID int64) (int64, error) {
+	var supID int64
+	err := conn.QueryRow(`
+		SELECT sf.supervisor_user_id
+		FROM boards b
+		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+		WHERE b.id = ?
+	`, boardID).Scan(&supID)
+	return supID, err
+}
+
+func GetUserRole(conn *sql.DB, userID int64) (string, error) {
+	var role string
+	err := conn.QueryRow(`SELECT role FROM users WHERE id = ?`, userID).Scan(&role)
+	return role, err
+}
+
+// ✅ FIXED: uses supervisor_students table (your migration creates supervisor_students)
+func IsStudentAssignedToSupervisor(conn *sql.DB, supervisorID, studentID int64) (bool, error) {
+	var count int
+	err := conn.QueryRow(`
+		SELECT COUNT(*)
+		FROM supervisor_students
+		WHERE supervisor_user_id = ? AND student_user_id = ?
+	`, supervisorID, studentID).Scan(&count)
+	return count > 0, err
+}
+
+// ✅ Eligible students (assigned to supervisor + optional q)
+func ListEligibleStudentsForSupervisor(conn *sql.DB, supervisorID int64, q string) ([]models.User, error) {
+	q = strings.TrimSpace(q)
+
+	rows, err := conn.Query(`
+		SELECT u.id, u.full_name, u.email, u.role, u.is_active, u.created_at
+		FROM users u
+		JOIN supervisor_students ss ON ss.student_user_id = u.id
+		WHERE ss.supervisor_user_id = ?
+		  AND u.role = 'student'
+		  AND u.is_active = 1
+		  AND (
+		    LOWER(u.full_name) LIKE '%' || LOWER(?) || '%'
+		    OR LOWER(u.email) LIKE '%' || LOWER(?) || '%'
+		  )
+		ORDER BY u.full_name ASC
+		LIMIT 25
+	`, supervisorID, q, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []models.User{}
+	for rows.Next() {
+		var u models.User
+		var activeInt int
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role, &activeInt, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		u.IsActive = activeInt == 1
+		out = append(out, u)
+	}
+	return out, nil
+}
+
+// ✅ Eligible supervisors (active + optional q)
+func ListEligibleSupervisors(conn *sql.DB, q string) ([]models.User, error) {
+	q = strings.TrimSpace(q)
+
+	rows, err := conn.Query(`
+		SELECT id, full_name, email, role, is_active, created_at
+		FROM users
+		WHERE role = 'supervisor'
+		  AND is_active = 1
+		  AND (
+		    LOWER(full_name) LIKE '%' || LOWER(?) || '%'
+		    OR LOWER(email) LIKE '%' || LOWER(?) || '%'
+		  )
+		ORDER BY full_name ASC
+		LIMIT 25
+	`, q, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []models.User{}
+	for rows.Next() {
+		var u models.User
+		var activeInt int
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role, &activeInt, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		u.IsActive = activeInt == 1
+		out = append(out, u)
+	}
+	return out, nil
+}
