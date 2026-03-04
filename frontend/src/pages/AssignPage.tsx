@@ -244,8 +244,7 @@ export default function AssignPage() {
         {/* 3 columns, fixed viewport height; each column scrolls */}
         <div className="grid h-[calc(100vh-220px)] grid-cols-1 gap-3 xl:grid-cols-[360px_1fr_1fr]">
           {/* ============== Column 1: Supervisors ============== */}
-          <section className="min-h-0 rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
-            <div className="mb-2 flex items-start justify-between gap-2">
+<section className="min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <div className="text-[16px] font-black text-slate-900">Supervisors</div>
                 <div className="mt-1 text-[12px] font-bold text-slate-500">
@@ -271,8 +270,8 @@ export default function AssignPage() {
               </div>
             )}
 
-            <div className="min-h-0 space-y-2 overflow-auto pr-1 [scrollbar-width:thin]">
-              {visibleSupervisors.map((s) => {
+<div className="mt-2 flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                {visibleSupervisors.map((s) => {
                 const active = selectedSup?.id === s.id;
                 return (
                   <button
@@ -321,8 +320,7 @@ export default function AssignPage() {
           </section>
 
           {/* ============== Column 2: Available Students ============== */}
-          <section className="min-h-0 rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
-            <div className="mb-2 flex items-start justify-between gap-2">
+<section className="min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <div className="text-[16px] font-black text-slate-900">Available students</div>
                 <div className="mt-1 text-[12px] font-bold text-slate-500">
@@ -377,8 +375,8 @@ export default function AssignPage() {
                 Select a supervisor first to enable student selection.
               </div>
             ) : (
-              <div className="min-h-0 space-y-2 overflow-auto pr-1 [scrollbar-width:thin]">
-                {visibleStudents.map((s) => {
+<div className="mt-2 flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">    
+              {visibleStudents.map((s) => {
                   const checked = selectedStuIds.has(s.id);
                   return (
                     <label
@@ -431,8 +429,7 @@ export default function AssignPage() {
           </section>
 
           {/* ============== Column 3: Assigned Students ============== */}
-          <section className="min-h-0 rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
-            <div className="mb-2 flex items-start justify-between gap-2">
+<section className="min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <div className="text-[16px] font-black text-slate-900">Assigned</div>
                 <div className="mt-1 text-[12px] font-bold text-slate-500">
@@ -456,8 +453,8 @@ export default function AssignPage() {
                 Loading...
               </div>
             ) : (
-              <div className="min-h-0 space-y-2 overflow-auto pr-1 [scrollbar-width:thin]">
-                {assigned.map((s) => (
+<div className="mt-2 flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                  {assigned.map((s) => (
                   <div
                     key={s.id}
                     className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-2.5"
