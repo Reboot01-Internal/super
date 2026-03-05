@@ -87,6 +87,7 @@ func main() {
 		ar.Get("/supervisors", api.AdminListSupervisors)
 		ar.Post("/boards", api.AdminCreateBoard)
 		ar.Get("/boards", api.AdminListBoardsByFile)
+		ar.Post("/boards/update", api.AdminUpdateBoard)
 
 		ar.Post("/board-members", api.AdminAddBoardMember)
 		ar.Post("/board-members/delete", api.AdminRemoveBoardMember)

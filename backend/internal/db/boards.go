@@ -53,3 +53,13 @@ func GetBoardBasic(conn *sql.DB, boardID int64) (models.Board, error) {
 	`, boardID).Scan(&b.ID, &b.SupervisorFileID, &b.Name, &b.Description, &b.CreatedBy, &b.CreatedAt)
 	return b, err
 }
+
+func UpdateBoardName(conn *sql.DB, boardID int64, name string) error {
+	name = strings.TrimSpace(name)
+	_, err := conn.Exec(`
+		UPDATE boards
+		SET name = ?
+		WHERE id = ?
+	`, name, boardID)
+	return err
+}

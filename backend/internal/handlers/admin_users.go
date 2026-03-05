@@ -190,6 +190,11 @@ type createBoardReq struct {
 	Description      string `json:"description"`
 }
 
+type updateBoardReq struct {
+	BoardID int64  `json:"board_id"`
+	Name    string `json:"name"`
+}
+
 func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 	var req createBoardReq
 	if err := utils.ReadJSON(r, &req); err != nil {
@@ -237,6 +242,49 @@ func (a *API) AdminListBoardsByFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, boards)
+}
+
+func (a *API) AdminUpdateBoard(w http.ResponseWriter, r *http.Request) {
+	var req updateBoardReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.BoardID == 0 || req.Name == "" {
+		writeErr(w, http.StatusBadRequest, "board_id and name required")
+		return
+	}
+
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can update board")
+		return
+	}
+
+	if role == "supervisor" {
+		actor := actorID(r, a.conn)
+		supID, err := db.GetBoardSupervisorUserID(a.conn, req.BoardID)
+		if err != nil || supID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid board")
+			return
+		}
+		if actor != supID {
+			writeErr(w, http.StatusForbidden, "not your board")
+			return
+		}
+	}
+
+	if err := db.UpdateBoardName(a.conn, req.BoardID, req.Name); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to update board")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 type addMemberReq struct {

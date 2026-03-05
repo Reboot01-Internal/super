@@ -83,6 +83,9 @@ export default function SupervisorFilePage() {
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState("");
+  const [editingBoardID, setEditingBoardID] = useState<number | null>(null);
+  const [editingBoardName, setEditingBoardName] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   async function loadBoards() {
     setErr("");
@@ -127,6 +130,55 @@ export default function SupervisorFilePage() {
       setErr(e.message || "Failed to create board");
     } finally {
       setCreating(false);
+    }
+  }
+
+  function startRename(board: Board) {
+    setErr("");
+    setMsg("Editing board name. Press Enter to save.");
+    setEditingBoardID(board.id);
+    setEditingBoardName(board.name || "");
+  }
+
+  function cancelRename() {
+    setEditingBoardID(null);
+    setEditingBoardName("");
+    setRenaming(false);
+  }
+
+  async function saveRename(boardID: number) {
+    const next = editingBoardName.trim();
+    if (!next) {
+      setErr("Board name cannot be empty.");
+      return;
+    }
+    if (renaming) return;
+
+    const current = boards.find((b) => b.id === boardID)?.name?.trim() || "";
+    if (current === next) {
+      cancelRename();
+      return;
+    }
+
+    setRenaming(true);
+    setErr("");
+    setMsg("");
+    try {
+      await apiFetch("/admin/boards/update", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: boardID,
+          name: next,
+        }),
+      });
+
+      setBoards((prev) => prev.map((b) => (b.id === boardID ? { ...b, name: next } : b)));
+      setMsg("Board name updated.");
+      cancelRename();
+    } catch (e: any) {
+      setErr(e.message || "Failed to update board name");
+    } finally {
+      setRenaming(false);
     }
   }
 
@@ -293,7 +345,37 @@ export default function SupervisorFilePage() {
                         </div>
 
                         <div className="min-w-0">
-                          <div className="truncate font-black text-slate-900">{b.name}</div>
+                          {editingBoardID === b.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                autoFocus
+                                value={editingBoardName}
+                                maxLength={60}
+                                onChange={(e) => setEditingBoardName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    saveRename(b.id);
+                                  }
+                                  if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    cancelRename();
+                                  }
+                                }}
+                                className="h-8 min-w-[160px] rounded-lg border border-violet-300 bg-white px-2.5 text-[13px] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200/50"
+                                placeholder="Board name"
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="truncate text-left font-black text-slate-900 hover:text-violet-700"
+                              title="Double click to edit name"
+                              onDoubleClick={() => startRename(b)}
+                            >
+                              {b.name}
+                            </button>
+                          )}
 
                           <div className="mt-1 flex min-w-0 items-center gap-2 text-[12px] font-extrabold text-slate-500">
                             <span className="inline-flex items-center gap-2">
