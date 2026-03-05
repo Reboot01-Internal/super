@@ -81,6 +81,15 @@ function PlusIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function CircleCheckIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 12.5 10.8 15 16.2 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function isDateOverdue(due: string) {
   if (!due) return false;
   const today = new Date();
@@ -100,13 +109,6 @@ function isDateToday(due: string) {
   );
 }
 
-function prettyStatus(s?: string) {
-  const x = (s || "todo").toLowerCase();
-  if (x === "doing") return "Doing";
-  if (x === "blocked") return "Blocked";
-  if (x === "done") return "Done";
-  return "To Do";
-}
 function prettyPriority(p?: string) {
   const x = (p || "medium").toLowerCase();
   if (x === "low") return "Low";
@@ -137,14 +139,6 @@ function labelDotClass(color: string) {
   }
 }
 
-/** Tailwind pill styles (status + priority) */
-function statusPillClass(status: string) {
-  const s = (status || "todo").toLowerCase();
-  if (s === "doing") return "bg-blue-50 text-blue-700 border-blue-200";
-  if (s === "blocked") return "bg-rose-50 text-rose-700 border-rose-200";
-  if (s === "done") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  return "bg-slate-50 text-slate-700 border-slate-200";
-}
 function priorityPillClass(priority: string) {
   const p = (priority || "medium").toLowerCase();
   if (p === "low") return "bg-sky-50 text-sky-700 border-sky-200";
@@ -157,11 +151,13 @@ function CardItem({
   card,
   preview,
   onOpen,
+  onToggleDone,
   isOverlay = false,
 }: {
   card: Card;
   preview?: CardPreview;
   onOpen: (cardId: number) => void;
+  onToggleDone: (cardId: number, nextDone: boolean) => void;
   isOverlay?: boolean;
 }) {
   const sortable = useSortable({
@@ -182,6 +178,7 @@ function CardItem({
   const due = card.due_date || "";
   const labels = preview?.labels ?? [];
   const status = preview?.status || card.status || "todo";
+  const isDone = status.toLowerCase() === "done";
   const priority = preview?.priority || card.priority || "medium";
 
   const dueClass = isDateOverdue(due)
@@ -195,8 +192,8 @@ function CardItem({
       ref={sortable.setNodeRef}
       style={style}
       className={[
-        "rounded-2xl border bg-white shadow-sm transition",
-        "border-slate-200/70 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md",
+        "rounded-xl border bg-white shadow-sm transition",
+        "border-slate-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50/40 hover:shadow-md",
         isOverlay ? "shadow-lg ring-1 ring-slate-200/70" : "",
       ].join(" ")}
     >
@@ -205,9 +202,9 @@ function CardItem({
           <button
             type="button"
             className={[
-              "h-9 w-9 rounded-xl border border-slate-200 bg-slate-50",
+              "h-9 w-9 rounded-lg border border-slate-200 bg-slate-50",
               "grid place-items-center cursor-grab active:cursor-grabbing",
-              "hover:border-blue-200 hover:bg-blue-50 transition",
+              "hover:border-slate-300 hover:bg-slate-100 transition",
               "shrink-0",
             ].join(" ")}
             {...sortable.attributes}
@@ -249,17 +246,22 @@ function CardItem({
             {card.title}
           </div>
 
-          {/* status + priority */}
+          {/* completion + priority */}
           <div className="mt-2 flex flex-wrap gap-2">
-            <span
+            <button
+              type="button"
+              onClick={() => onToggleDone(card.id, !isDone)}
               className={[
-                "h-7 px-2.5 inline-flex items-center rounded-full border text-xs font-extrabold",
-                statusPillClass(status),
+                "h-7 px-2.5 inline-flex items-center gap-1.5 rounded-full border text-xs font-extrabold transition",
+                isDone
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100",
               ].join(" ")}
-              title="Status"
+              title={isDone ? "Mark as not done" : "Mark as done"}
             >
-              {prettyStatus(status)}
-            </span>
+              <CircleCheckIcon size={12} />
+              {isDone ? "Done" : "Mark done"}
+            </button>
             <span
               className={[
                 "h-7 px-2.5 inline-flex items-center rounded-full border text-xs font-extrabold",
@@ -345,12 +347,14 @@ function ListColumn({
   previews,
   onAddCard,
   onOpenCard,
+  onToggleDone,
 }: {
   list: List;
   cards: Card[];
   previews: Record<number, CardPreview | undefined>;
   onAddCard: (listId: number) => void;
   onOpenCard: (cardId: number) => void;
+  onToggleDone: (cardId: number, nextDone: boolean) => void;
 }) {
   const drop = useDroppable({
     id: `list:${list.id}`,
@@ -360,12 +364,12 @@ function ListColumn({
   return (
     <div
       className={[
-        "w-[340px] shrink-0 rounded-2xl border bg-white shadow-md overflow-hidden",
-        "border-slate-200/70 transition hover:-translate-y-0.5 hover:shadow-lg",
-        drop.isOver ? "border-blue-300 ring-2 ring-blue-100" : "",
+        "w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
+        "border-slate-200 transition hover:-translate-y-0.5 hover:shadow-md",
+        drop.isOver ? "border-sky-300 ring-2 ring-sky-100" : "",
       ].join(" ")}
     >
-      <div className="px-3 py-3 flex items-center justify-between gap-2 border-b border-slate-200/70 bg-gradient-to-b from-blue-50/30 to-white">
+      <div className="px-3 py-3 flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-100">
         <div className="min-w-0 flex items-center gap-2">
           <div className="font-extrabold text-slate-900 truncate">{list.title}</div>
           <span className="h-6 px-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-600">
@@ -376,16 +380,16 @@ function ListColumn({
         <button
           type="button"
           onClick={() => onAddCard(list.id)}
-          className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 font-extrabold hover:bg-slate-50 transition"
+          className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 font-extrabold hover:bg-slate-50 transition"
         >
           + Card
         </button>
       </div>
 
-      <div ref={drop.setNodeRef} className="p-3 grid gap-2 min-h-[120px]">
+      <div ref={drop.setNodeRef} className="p-3 grid gap-2 min-h-[120px] bg-slate-100/80">
         <SortableContext items={cards.map((c) => `card:${c.id}`)} strategy={verticalListSortingStrategy}>
           {cards.map((c) => (
-            <CardItem key={c.id} card={c} preview={previews[c.id]} onOpen={onOpenCard} />
+            <CardItem key={c.id} card={c} preview={previews[c.id]} onOpen={onOpenCard} onToggleDone={onToggleDone} />
           ))}
         </SortableContext>
 
@@ -541,6 +545,43 @@ export default function BoardPage() {
     return data?.cards.find((c) => c.id === cardId);
   }
 
+  async function toggleCardDone(cardId: number, nextDone: boolean) {
+    const current = findCard(cardId);
+    if (!current) return;
+
+    const nextStatus = nextDone ? "done" : "todo";
+
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            cards: prev.cards.map((c) => (c.id === cardId ? { ...c, status: nextStatus } : c)),
+          }
+        : prev
+    );
+    setPreviews((prev) => ({
+      ...prev,
+      [cardId]: prev[cardId] ? { ...prev[cardId], status: nextStatus } : prev[cardId],
+    }));
+
+    try {
+      await apiFetch("/admin/card", {
+        method: "PUT",
+        body: JSON.stringify({
+          card_id: current.id,
+          title: current.title?.trim() || "",
+          description: current.description || "",
+          due_date: current.due_date || "",
+          status: nextStatus,
+          priority: current.priority || "medium",
+        }),
+      });
+    } catch (e: any) {
+      setErr(e?.message || "Failed to update card");
+      await load();
+    }
+  }
+
   function onDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
     if (id.startsWith("card:")) {
@@ -625,7 +666,7 @@ export default function BoardPage() {
     <AdminLayout
       active="supervisors"
       title={pageTitle}
-      subtitle="Double click a card to open"
+      subtitle="Drag cards across lists. Double click a card to open."
       right={
         <button
           className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
@@ -656,21 +697,21 @@ export default function BoardPage() {
       {!loading && data && (
         <div className="grid gap-4">
           {/* add list */}
-          <div className="rounded-2xl border border-slate-200/70 bg-white shadow-sm p-3">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-3">
             <form onSubmit={createList} className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 grid place-items-center">
+              <div className="h-10 w-10 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 grid place-items-center">
                 <PlusIcon />
               </div>
 
               <input
-                className="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-300"
+                className="h-11 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 outline-none focus:bg-white focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
                 placeholder="Add a list (To Do, Doing, Done...)"
                 value={newListTitle}
                 onChange={(e) => setNewListTitle(e.target.value)}
               />
 
               <button
-                className="h-11 px-4 rounded-xl font-extrabold text-white bg-gradient-to-r from-violet-600 to-violet-400 shadow-sm disabled:opacity-70"
+                className="h-11 px-4 rounded-lg font-extrabold text-white bg-slate-800 shadow-sm hover:bg-slate-900 disabled:opacity-70"
                 disabled={creatingList || !newListTitle.trim()}
               >
                 {creatingList ? "..." : "Add"}
@@ -685,8 +726,8 @@ export default function BoardPage() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
           >
-            <div className="overflow-x-auto pb-2">
-              <div className="flex gap-4 items-start min-h-[380px] p-1">
+            <div className="overflow-x-auto pb-2 rounded-xl border border-slate-200 bg-[#f1f2f4] p-3">
+              <div className="flex gap-4 items-start min-h-[380px]">
                 {listsSorted.map((l) => (
                   <ListColumn
                     key={l.id}
@@ -695,12 +736,13 @@ export default function BoardPage() {
                     previews={previews}
                     onAddCard={createCard}
                     onOpenCard={onOpenCard}
+                    onToggleDone={toggleCardDone}
                   />
                 ))}
 
                 {listsSorted.length === 0 && (
-                  <div className="w-[340px] shrink-0 rounded-2xl border border-slate-200/70 bg-white shadow-md overflow-hidden">
-                    <div className="px-3 py-3 border-b border-slate-200/70">
+                  <div className="w-[332px] shrink-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="px-3 py-3 border-b border-slate-200">
                       <div className="flex items-center gap-2">
                         <div className="font-extrabold text-slate-900">No lists yet</div>
                         <span className="h-6 px-2 rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-600">
@@ -720,6 +762,7 @@ export default function BoardPage() {
                   card={activeCardSnapshot}
                   preview={previews[activeCardSnapshot.id]}
                   onOpen={onOpenCard}
+                  onToggleDone={toggleCardDone}
                   isOverlay
                 />
               ) : null}
