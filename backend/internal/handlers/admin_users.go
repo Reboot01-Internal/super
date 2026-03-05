@@ -3,6 +3,7 @@ package handlers
 import (
 	// "crypto/rand"
 	// "encoding/base64"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
@@ -244,6 +245,11 @@ type addMemberReq struct {
 	RoleInBoard string `json:"role_in_board"` // member/lead/owner...
 }
 
+type removeMemberReq struct {
+	BoardID int64 `json:"board_id"`
+	UserID  int64 `json:"user_id"`
+}
+
 func (a *API) AdminAddBoardMember(w http.ResponseWriter, r *http.Request) {
 	var req addMemberReq
 	if err := utils.ReadJSON(r, &req); err != nil {
@@ -321,6 +327,72 @@ func (a *API) AdminListBoardMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, members)
+}
+
+func (a *API) AdminRemoveBoardMember(w http.ResponseWriter, r *http.Request) {
+	var req removeMemberReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+	if req.BoardID == 0 || req.UserID == 0 {
+		writeErr(w, http.StatusBadRequest, "board_id and user_id required")
+		return
+	}
+
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can remove members")
+		return
+	}
+
+	boardSupID, err := db.GetBoardSupervisorUserID(a.conn, req.BoardID)
+	if err != nil || boardSupID == 0 {
+		writeErr(w, http.StatusBadRequest, "board has no supervisor")
+		return
+	}
+
+	if role == "supervisor" {
+		actor := actorID(r, a.conn)
+		if actor != boardSupID {
+			writeErr(w, http.StatusForbidden, "not your board")
+			return
+		}
+	}
+
+	if req.UserID == boardSupID {
+		writeErr(w, http.StatusForbidden, "cannot remove board supervisor")
+		return
+	}
+
+	memberRole, err := db.GetBoardMemberRole(a.conn, req.BoardID, req.UserID)
+	if err == sql.ErrNoRows {
+		writeErr(w, http.StatusNotFound, "member not found")
+		return
+	}
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	if strings.EqualFold(strings.TrimSpace(memberRole), "owner") {
+		writeErr(w, http.StatusForbidden, "cannot remove board owner")
+		return
+	}
+
+	ok, err := db.DeleteBoardMember(a.conn, req.BoardID, req.UserID)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to remove member")
+		return
+	}
+	if !ok {
+		writeErr(w, http.StatusNotFound, "member not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,9 @@ export function clearAuth() {
   localStorage.removeItem("login");
 }
 
+// Backward compatibility with older imports.
+export const clearToken = clearAuth;
+
 function buildHeaders(options: RequestInit): Record<string, string> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),

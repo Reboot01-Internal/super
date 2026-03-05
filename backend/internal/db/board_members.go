@@ -55,3 +55,29 @@ func ListBoardMembers(conn *sql.DB, boardID int64) ([]models.BoardMember, error)
 	}
 	return out, nil
 }
+
+func GetBoardMemberRole(conn *sql.DB, boardID, userID int64) (string, error) {
+	var roleInBoard string
+	err := conn.QueryRow(`
+		SELECT role_in_board
+		FROM board_members
+		WHERE board_id = ? AND user_id = ?
+	`, boardID, userID).Scan(&roleInBoard)
+	return roleInBoard, err
+}
+
+func DeleteBoardMember(conn *sql.DB, boardID, userID int64) (bool, error) {
+	res, err := conn.Exec(`
+		DELETE FROM board_members
+		WHERE board_id = ? AND user_id = ?
+	`, boardID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
+}

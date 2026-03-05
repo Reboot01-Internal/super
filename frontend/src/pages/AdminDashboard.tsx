@@ -259,7 +259,7 @@ export default function AdminDashboard() {
       if (!email) throw new Error("User not found in Reboot API.");
       if (exists) throw new Error("User already added.");
 
-      const res = await apiFetch("/admin/users", {
+      await apiFetch("/admin/users", {
         method: "POST",
         body: JSON.stringify({
           nickname: nickname.trim(),

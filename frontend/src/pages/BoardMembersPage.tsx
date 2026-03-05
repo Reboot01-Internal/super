@@ -8,7 +8,7 @@ type Member = {
   full_name: string;
   nickname?: string;
   email: string;
-  role: string; // admin/supervisor/student
+  role: string;
   role_in_board: string;
   added_at: string;
 };
@@ -26,14 +26,15 @@ function initials(name: string) {
   const v = parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
   return v || "U";
 }
+
 function displayNick(nickname?: string, email?: string) {
   const n = (nickname || "").trim();
   if (n) return n;
-
   const e = (email || "").trim();
   if (!e) return "";
-  return e.split("@")[0]; // fallback: before @
+  return e.split("@")[0];
 }
+
 function SearchIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -77,6 +78,17 @@ function CrownIcon({ size = 16 }: { size?: number }) {
         strokeWidth="2"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function BinIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7 6l1 14h8l1-14" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M10 10v6M14 10v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -143,12 +155,23 @@ function Pill({ children }: { children: React.ReactNode }) {
 function RowCard({
   left,
   right,
+  selected,
+  onClick,
 }: {
   left: React.ReactNode;
   right?: React.ReactNode;
+  selected?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div className="group flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50/20 hover:shadow-[0_16px_32px_rgba(59,130,246,0.10)]">
+    <div
+      onClick={onClick}
+      className={`group flex w-full items-center justify-between gap-3 rounded-2xl border p-3 shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition ${
+        selected
+          ? "border-violet-300 bg-violet-50/50"
+          : "border-slate-200 bg-white hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50/20 hover:shadow-[0_16px_32px_rgba(59,130,246,0.10)]"
+      } ${onClick ? "cursor-pointer" : ""}`}
+    >
       <div className="min-w-0">{left}</div>
       {right ? <div className="flex flex-none items-center gap-2">{right}</div> : null}
     </div>
@@ -169,6 +192,16 @@ export default function BoardMembersPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">("all");
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const [selectedResultIds, setSelectedResultIds] = useState<Set<number>>(new Set());
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<number>>(new Set());
+  const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  const removableMembers = useMemo(
+    () => members.filter((m) => (m.role_in_board || "").toLowerCase() !== "owner"),
+    [members]
+  );
 
   async function loadMembers() {
     setErr("");
@@ -199,6 +232,7 @@ export default function BoardMembersPage() {
       )}&q=${encodeURIComponent(q)}`;
       const res = await apiFetch(url);
       setResults(res);
+      setSelectedResultIds(new Set());
     } catch (e: any) {
       setErr(e.message || "Search failed");
     } finally {
@@ -206,24 +240,114 @@ export default function BoardMembersPage() {
     }
   }
 
-  async function addMember(userId: number) {
+  function toggleResult(id: number) {
+    setSelectedResultIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleMember(id: number) {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllResults() {
+    setSelectedResultIds(new Set(results.map((r) => r.id)));
+  }
+
+  function selectAllMembers() {
+    setSelectedMemberIds(new Set(removableMembers.map((m) => m.user_id)));
+  }
+
+  async function addSelected() {
+    if (selectedResultIds.size === 0 || adding) return;
+
+    setAdding(true);
+    setMsg("");
+    setErr("");
+
+    const ids = Array.from(selectedResultIds);
+    try {
+      await Promise.all(
+        ids.map((userId) =>
+          apiFetch("/admin/board-members", {
+            method: "POST",
+            body: JSON.stringify({
+              board_id: boardID,
+              user_id: userId,
+              role_in_board: "member",
+            }),
+          })
+        )
+      );
+
+      const addedUsers = results.filter((u) => selectedResultIds.has(u.id));
+      const now = new Date().toISOString();
+
+      setMembers((prev) => {
+        const next = new Map(prev.map((m) => [m.user_id, m]));
+        addedUsers.forEach((u) => {
+          next.set(u.id, {
+            user_id: u.id,
+            full_name: u.full_name,
+            nickname: u.nickname,
+            email: u.email,
+            role: u.role,
+            role_in_board: "member",
+            added_at: now,
+          });
+        });
+        return Array.from(next.values()).sort((a, b) => a.full_name.localeCompare(b.full_name));
+      });
+
+      setResults((prev) => prev.filter((u) => !selectedResultIds.has(u.id)));
+      setSelectedResultIds(new Set());
+      setMsg(`Added ${ids.length} member(s).`);
+    } catch (e: any) {
+      setErr(e.message || "Failed to add selected members");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function removeMembers(userIds: number[]) {
+    if (userIds.length === 0 || removing) return;
+
+    setRemoving(true);
     setMsg("");
     setErr("");
     try {
-      await apiFetch("/admin/board-members", {
-        method: "POST",
-        body: JSON.stringify({
-          board_id: boardID,
-          user_id: userId,
-          role_in_board: "member",
-        }),
+      await Promise.all(
+        userIds.map((userId) =>
+          apiFetch("/admin/board-members/delete", {
+            method: "POST",
+            body: JSON.stringify({
+              board_id: boardID,
+              user_id: userId,
+            }),
+          })
+        )
+      );
+
+      const removed = new Set(userIds);
+      setMembers((prev) => prev.filter((m) => !removed.has(m.user_id)));
+      setSelectedMemberIds((prev) => {
+        const next = new Set(prev);
+        userIds.forEach((id) => next.delete(id));
+        return next;
       });
-      setMsg("Member added.");
-      setResults([]);
-      setQ("");
-      await loadMembers();
+      setMsg(`Removed ${userIds.length} member(s).`);
     } catch (e: any) {
-      setErr(e.message || "Failed to add member");
+      setErr(e.message || "Failed to remove member(s)");
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -248,31 +372,29 @@ export default function BoardMembersPage() {
         </div>
       }
     >
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_0.95fr]">
-        {/* Left */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="grid gap-4">
           <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-base font-black text-slate-900">Add members</div>
                 <div className="mt-1 text-sm font-semibold text-slate-500">
-                  Search by name or email, then add to this board.
+                  Select multiple users, then add all at once.
                 </div>
               </div>
-              <Pill>Add</Pill>
+              <Pill>{results.length}</Pill>
             </div>
 
             <div className="h-3" />
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
-              <div className="flex h-11 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)] min-w-[220px]">
+              <div className="flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                 <span className="text-slate-500">
                   <SearchIcon />
                 </span>
                 <input
                   className="w-full bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                  placeholder="Search ..."
+                  placeholder="Search users..."
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   onKeyDown={(e) => {
@@ -284,28 +406,6 @@ export default function BoardMembersPage() {
                 />
               </div>
 
-              <button
-                className="h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
-                onClick={searchUsers}
-                disabled={searching || q.trim().length < 2}
-              >
-                {searching ? "Searching..." : "Search"}
-              </button>
-
-              <button
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 transition hover:bg-slate-50"
-                type="button"
-                onClick={() => {
-                  setQ("");
-                  setResults([]);
-                  setErr("");
-                  setMsg("");
-                }}
-                disabled={searching && !q.trim()}
-              >
-                Clear
-              </button>
-
               <select
                 className="h-11 w-[170px] rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200"
                 value={roleFilter}
@@ -316,9 +416,37 @@ export default function BoardMembersPage() {
                 <option value="supervisor">Supervisors</option>
               </select>
 
-              <div className="ml-auto whitespace-nowrap text-xs font-bold text-slate-500">
-                Tip: type at least 2 characters
-              </div>
+              <button
+                className="h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={searchUsers}
+                disabled={searching || q.trim().length < 2}
+              >
+                {searching ? "Searching..." : "Search"}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={selectAllResults}
+                disabled={results.length === 0}
+              >
+                Select all
+              </button>
+              <button
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setSelectedResultIds(new Set())}
+                disabled={selectedResultIds.size === 0}
+              >
+                Clear
+              </button>
+              <button
+                className="h-9 rounded-xl bg-slate-900 px-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={addSelected}
+                disabled={selectedResultIds.size === 0 || adding}
+              >
+                {adding ? "Adding..." : `Add selected (${selectedResultIds.size})`}
+              </button>
             </div>
 
             {err ? (
@@ -335,121 +463,152 @@ export default function BoardMembersPage() {
 
             <div className="h-4" />
 
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-black text-slate-900">Results</div>
-              <Pill>{results.length}</Pill>
-            </div>
-
-            <div className="h-2.5" />
-
             {results.length === 0 ? (
               <div className="text-sm font-semibold text-slate-500">Search results will appear here.</div>
             ) : (
               <div className="grid gap-2.5">
-                {results.map((u) => (
-                  <RowCard
-                    key={u.id}
-                    left={
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                          {initials(u.full_name)}
+                {results.map((u) => {
+                  const checked = selectedResultIds.has(u.id);
+                  return (
+                    <RowCard
+                      key={u.id}
+                      selected={checked}
+                      onClick={() => toggleResult(u.id)}
+                      left={
+                        <div className="flex min-w-0 items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleResult(u.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
+                          />
+                          <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
+                            {initials(u.full_name)}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black text-slate-900">{u.full_name}</div>
+                            <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
+                              {displayNick(u.nickname, u.email)}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
+                                <MailIcon /> <span className="truncate">{u.email}</span>
+                              </span>
+                              <RolePill role={u.role} />
+                            </div>
+                          </div>
                         </div>
-
-                        <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-slate-900">{u.full_name}</div>
-
-<div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
-  {displayNick(u.nickname, u.email)}
-</div>
-
-<div className="mt-1 flex flex-wrap items-center gap-2">
-  <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
-    <MailIcon /> <span className="truncate">{u.email}</span>
-  </span>
-
-  <RolePill role={u.role} />
-</div>
-                        </div>
-                      </div>
-                    }
-                    right={
-                      <>
-                        <button
-                          className="inline-flex h-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 hover:bg-blue-100"
-                          onClick={() => addMember(u.id)}
-                          title="Add to board"
-                        >
-                          Add
-                        </button>
-                        <span className="text-xl font-black text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-400">
-                          ›
-                        </span>
-                      </>
-                    }
-                  />
-                ))}
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
 
-        {/* Right */}
         <div className="grid gap-4">
           <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-base font-black text-slate-900">Current members</div>
-                <div className="mt-1 text-sm font-semibold text-slate-500">
-                  People who can access this board.
-                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">Manage who can access this board.</div>
               </div>
-              <Pill>{loading ? "…" : members.length}</Pill>
+              <Pill>{loading ? "..." : members.length}</Pill>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={selectAllMembers}
+                disabled={removableMembers.length === 0}
+              >
+                Select removable
+              </button>
+              <button
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setSelectedMemberIds(new Set())}
+                disabled={selectedMemberIds.size === 0}
+              >
+                Clear
+              </button>
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => removeMembers(Array.from(selectedMemberIds))}
+                disabled={selectedMemberIds.size === 0 || removing}
+              >
+                <BinIcon size={14} />
+                {removing ? "Removing..." : `Remove selected (${selectedMemberIds.size})`}
+              </button>
             </div>
 
             <div className="h-3" />
 
             {loading ? (
-              <div className="text-sm font-semibold text-slate-500">Loading…</div>
+              <div className="text-sm font-semibold text-slate-500">Loading...</div>
             ) : members.length === 0 ? (
               <div className="text-sm font-semibold text-slate-500">No members yet.</div>
             ) : (
               <div className="grid gap-2.5">
-                {members.map((m) => (
-                  <RowCard
-                    key={m.user_id}
-                    left={
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                          {initials(m.full_name)}
+                {members.map((m) => {
+                  const isOwner = (m.role_in_board || "").toLowerCase() === "owner";
+                  const checked = selectedMemberIds.has(m.user_id);
+                  return (
+                    <RowCard
+                      key={m.user_id}
+                      selected={checked}
+                      onClick={isOwner ? undefined : () => toggleMember(m.user_id)}
+                      left={
+                        <div className="flex min-w-0 items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={isOwner}
+                            onChange={() => toggleMember(m.user_id)}
+                            className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 disabled:opacity-40"
+                          />
+                          <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
+                            {initials(m.full_name)}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                            <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
+                              {displayNick(m.nickname, m.email)}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
+                                <MailIcon /> <span className="truncate">{m.email}</span>
+                              </span>
+                              <RolePill role={m.role} />
+                              <BoardRolePill roleInBoard={m.role_in_board} />
+                            </div>
+                          </div>
                         </div>
-
-                        <div className="min-w-0">
-                          {/* <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div> */}
-
-                          <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
-
-<div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
-  {displayNick(m.nickname, m.email)}
-</div>
-
-<div className="mt-1 flex flex-wrap items-center gap-2">
-  <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
-    <MailIcon /> <span className="truncate">{m.email}</span>
-  </span>
-
-  <RolePill role={m.role} />
-  <BoardRolePill roleInBoard={m.role_in_board} />
-</div>
-                        </div>
-                      </div>
-                    }
-                    right={
-                      <span className="text-xl font-black text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-400">
-                        ›
-                      </span>
-                    }
-                  />
-                ))}
+                      }
+                      right={
+                        isOwner ? (
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-500">
+                            Protected
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Remove member"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeMembers([m.user_id]);
+                            }}
+                          >
+                            <BinIcon size={14} />
+                          </button>
+                        )
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
