@@ -10,6 +10,7 @@ import (
 type assignUser struct {
 	ID       int    `json:"id"`
 	FullName string `json:"full_name"`
+		Nickname string `json:"nickname"`
 	Email    string `json:"email"`
 	Role     string `json:"role,omitempty"`
 }
@@ -22,7 +23,7 @@ type assignBody struct {
 
 func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Request) {
 	rows, err := api.conn.Query(`
-		SELECT id, full_name, email, role
+		SELECT id, full_name, nickname, email, role
 		FROM users
 		WHERE role='supervisor' AND is_active=1
 		ORDER BY full_name ASC
@@ -36,12 +37,13 @@ func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Reques
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Role); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
 		out = append(out, u)
 	}
+
 	writeJSON(w, 200, out)
 }
 
@@ -56,23 +58,27 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	var rows *sql.Rows
 	var err error
 
-	if q == "" {
-		rows, err = api.conn.Query(`
-			SELECT id, full_name, email, role
-			FROM users
-			WHERE role='student' AND is_active=1
-			ORDER BY full_name ASC
-		`)
-	} else {
-		rows, err = api.conn.Query(`
-			SELECT id, full_name, email, role
-			FROM users
-			WHERE role='student' AND is_active=1
-			  AND (LOWER(full_name) LIKE ? OR LOWER(email) LIKE ?)
-			ORDER BY full_name ASC
-			LIMIT 200
-		`, qLike, qLike)
-	}
+if q == "" {
+  rows, err = api.conn.Query(`
+    SELECT id, full_name, nickname, email, role
+    FROM users
+    WHERE role='student' AND is_active=1
+    ORDER BY full_name ASC
+  `)
+} else {
+  rows, err = api.conn.Query(`
+    SELECT id, full_name, nickname, email, role
+    FROM users
+    WHERE role='student' AND is_active=1
+      AND (
+        LOWER(full_name) LIKE ?
+        OR LOWER(email) LIKE ?
+        OR LOWER(nickname) LIKE ?
+      )
+    ORDER BY full_name ASC
+    LIMIT 200
+  `, qLike, qLike, qLike)
+}
 
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -83,7 +89,7 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Role); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -104,7 +110,7 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := api.conn.Query(`
-		SELECT u.id, u.full_name, u.email
+SELECT u.id, u.full_name, u.nickname, u.email
 		FROM supervisor_students ss
 		JOIN users u ON u.id = ss.student_user_id
 		WHERE ss.supervisor_user_id = ?
@@ -119,7 +125,7 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Email); err != nil {
+		if err :=rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
