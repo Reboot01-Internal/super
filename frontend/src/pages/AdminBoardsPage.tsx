@@ -165,8 +165,8 @@ function StatPill({
     <span
       className="
         inline-flex items-center gap-3
-        rounded-2xl border border-slate-900/10
-        bg-white/90 shadow-[0_10px_26px_rgba(15,23,42,0.06)]
+        rounded-2xl border border-[#6d5efc]/20
+        bg-white shadow-[0_12px_26px_rgba(15,23,42,0.06)]
         px-3 py-2
       "
       title={label}
@@ -175,7 +175,7 @@ function StatPill({
         className="
           grid place-items-center
           h-9 w-9 rounded-2xl
-          border border-slate-900/10 bg-slate-900/3 text-slate-900/65
+          border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc]
         "
       >
         {icon}
@@ -293,6 +293,7 @@ export default function AdminBoardsPage() {
               rounded-2xl border border-slate-900/10
               bg-white/92 shadow-[0_10px_26px_rgba(15,23,42,0.06)]
               px-3 py-2.5
+              focus-within:border-[#6d5efc]/30 focus-within:ring-4 focus-within:ring-[#6d5efc]/12
               max-[1020px]:min-w-0
             "
           >
@@ -422,13 +423,13 @@ export default function AdminBoardsPage() {
                     group relative cursor-pointer
                     rounded-[18px] border border-slate-900/10
                     bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.07)]
-                    p-4
+                    p-4 pt-5
                     transition
                     hover:-translate-y-[2px]
-                    hover:border-slate-900/18
+                    hover:border-[#6d5efc]/25
                     hover:shadow-[0_20px_44px_rgba(15,23,42,0.10)]
                     focus-visible:outline-none
-                    focus-visible:ring-4 focus-visible:ring-slate-900/10
+                    focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15
                   "
                 >
                   {/* Top */}
@@ -438,7 +439,7 @@ export default function AdminBoardsPage() {
                         className="
                           grid place-items-center
                           h-10 w-10 rounded-2xl
-                          border border-slate-900/10 bg-slate-900/3 text-slate-900/70
+                          border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc]
                           flex-none
                         "
                         aria-hidden="true"
@@ -461,7 +462,7 @@ export default function AdminBoardsPage() {
                         className="
                           inline-flex items-center gap-2
                           h-[30px] px-3 rounded-full
-                          border border-slate-900/10 bg-slate-900/3
+                          border border-[#6d5efc]/20 bg-[#6d5efc]/10
                           text-[12px] font-black text-slate-900/65
                         "
                         title="Supervisor"
@@ -473,7 +474,7 @@ export default function AdminBoardsPage() {
                         className="
                           inline-flex items-center
                           h-[30px] px-3 rounded-full
-                          border border-slate-900/10 bg-slate-900/3
+                          border border-slate-200 bg-slate-50
                           text-[12px] font-black text-slate-900/65
                         "
                         title="Created"
@@ -506,7 +507,7 @@ export default function AdminBoardsPage() {
                         className="
                           inline-flex items-center gap-2
                           h-[30px] px-3 rounded-full
-                          border border-slate-900/10 bg-slate-900/3
+                          border border-slate-200 bg-slate-50
                           text-[12px] font-extrabold text-slate-900/70
                         "
                       >
@@ -518,7 +519,7 @@ export default function AdminBoardsPage() {
                         className="
                           inline-flex items-center gap-2
                           h-[30px] px-3 rounded-full
-                          border border-slate-900/10 bg-slate-900/3
+                          border border-slate-200 bg-slate-50
                           text-[12px] font-extrabold text-slate-900/70
                         "
                       >
@@ -533,7 +534,7 @@ export default function AdminBoardsPage() {
                         text-[12px] font-black text-slate-900/62
                         transition
                         group-hover:translate-x-[2px]
-                        group-hover:text-slate-900/75
+                        group-hover:text-[#6d5efc]
                       "
                     >
                       Open board <ArrowIcon />
