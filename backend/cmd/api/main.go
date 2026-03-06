@@ -112,12 +112,15 @@ func main() {
 		ar.Post("/card/subtasks", api.AdminCreateSubtask)
 		ar.Post("/card/subtasks/toggle", api.AdminToggleSubtask)
 		ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
+		ar.Post("/card/subtasks/update", api.AdminUpdateSubtask)
 
 		ar.Post("/card/assignees/add", api.AdminAddAssignee)
 		ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
 
 		ar.Post("/labels", api.AdminCreateLabel)
 		ar.Get("/labels", api.AdminListLabels)
+		ar.Post("/labels/update", api.AdminUpdateLabel)
+		ar.Post("/labels/delete", api.AdminDeleteLabel)
 
 		ar.Post("/card/labels/add", api.AdminAddCardLabel)
 		ar.Post("/card/labels/remove", api.AdminRemoveCardLabel)

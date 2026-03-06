@@ -84,3 +84,18 @@ func ListCardLabels(conn *sql.DB, cardID int64) ([]models.CardLabel, error) {
 	}
 	return out, nil
 }
+
+func UpdateLabel(conn *sql.DB, labelID int64, name, color string) error {
+	name = strings.TrimSpace(name)
+	color = strings.TrimSpace(strings.ToLower(color))
+	if color == "" {
+		color = "indigo"
+	}
+	_, err := conn.Exec(`UPDATE labels SET name = ?, color = ? WHERE id = ?`, name, color, labelID)
+	return err
+}
+
+func DeleteLabel(conn *sql.DB, labelID int64) error {
+	_, err := conn.Exec(`DELETE FROM labels WHERE id = ?`, labelID)
+	return err
+}

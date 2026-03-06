@@ -184,6 +184,52 @@ func (a *API) AdminListLabels(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, labels)
 }
 
+type updateLabelReq struct {
+	LabelID int64  `json:"label_id"`
+	Name    string `json:"name"`
+	Color   string `json:"color"`
+}
+
+func (a *API) AdminUpdateLabel(w http.ResponseWriter, r *http.Request) {
+	var req updateLabelReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	req.Color = strings.TrimSpace(strings.ToLower(req.Color))
+	if req.LabelID == 0 || req.Name == "" {
+		writeErr(w, http.StatusBadRequest, "label_id and name required")
+		return
+	}
+	if err := db.UpdateLabel(a.conn, req.LabelID, req.Name, req.Color); err != nil {
+		writeErr(w, http.StatusBadRequest, "failed to update label")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+type deleteLabelReq struct {
+	LabelID int64 `json:"label_id"`
+}
+
+func (a *API) AdminDeleteLabel(w http.ResponseWriter, r *http.Request) {
+	var req deleteLabelReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+	if req.LabelID == 0 {
+		writeErr(w, http.StatusBadRequest, "label_id required")
+		return
+	}
+	if err := db.DeleteLabel(a.conn, req.LabelID); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to delete label")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 type cardLabelReq struct {
 	CardID  int64 `json:"card_id"`
 	LabelID int64 `json:"label_id"`
@@ -614,6 +660,45 @@ func (a *API) AdminUpdateSubtaskDue(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		actor := actorID(r, a.conn)
 		_ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_due_date_updated", "subtask_id="+strconv.FormatInt(req.SubtaskID, 10))
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+type updateSubtaskReq struct {
+	SubtaskID int64  `json:"subtask_id"`
+	Title     string `json:"title"`
+	DueDate   string `json:"due_date"`
+}
+
+func (a *API) AdminUpdateSubtask(w http.ResponseWriter, r *http.Request) {
+	var req updateSubtaskReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.DueDate = strings.TrimSpace(req.DueDate)
+
+	if req.SubtaskID == 0 {
+		writeErr(w, http.StatusBadRequest, "subtask_id required")
+		return
+	}
+	if req.Title == "" {
+		writeErr(w, http.StatusBadRequest, "title required")
+		return
+	}
+
+	if err := db.UpdateSubtask(a.conn, req.SubtaskID, req.Title, req.DueDate); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed")
+		return
+	}
+
+	cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
+	if err == nil {
+		actor := actorID(r, a.conn)
+		_ = db.InsertCardActivity(a.conn, cardID, actor, "subtask_updated", "subtask_id="+strconv.FormatInt(req.SubtaskID, 10))
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

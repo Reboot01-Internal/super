@@ -6,7 +6,6 @@ import (
 	"taskflow/internal/models"
 )
 
-
 func CreateSubtask(conn *sql.DB, cardID int64, title string, dueDate string) (int64, error) {
 	res, err := conn.Exec(
 		`INSERT INTO card_subtasks (card_id, title, is_done, due_date) VALUES (?, ?, 0, ?)`,
@@ -54,5 +53,13 @@ func ToggleSubtaskDone(conn *sql.DB, subtaskID int64, isDone bool) error {
 
 func DeleteSubtask(conn *sql.DB, subtaskID int64) error {
 	_, err := conn.Exec(`DELETE FROM card_subtasks WHERE id = ?`, subtaskID)
+	return err
+}
+
+func UpdateSubtask(conn *sql.DB, subtaskID int64, title string, dueDate string) error {
+	_, err := conn.Exec(
+		`UPDATE card_subtasks SET title = ?, due_date = ? WHERE id = ?`,
+		title, dueDate, subtaskID,
+	)
 	return err
 }

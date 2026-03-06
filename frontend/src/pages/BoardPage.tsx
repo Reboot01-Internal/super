@@ -51,6 +51,7 @@ type BoardFull = {
 type BoardMember = {
   user_id: number;
   full_name: string;
+  nickname?: string;
   email: string;
   role: string;
   role_in_board: string;
@@ -112,9 +113,8 @@ function GroupIcon({ size = 16 }: { size?: number }) {
 function PencilIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="m12 6 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M14 4l2-2 4 4-2 2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -122,15 +122,16 @@ function PencilIcon({ size = 14 }: { size?: number }) {
 function BinIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 7h16" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M9 7V5.8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path
-        d="M7.8 7.8 8.4 18a2 2 0 0 0 2 1.9h3.2a2 2 0 0 0 2-1.9l.6-10.2"
+        d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="2"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <path d="M10.5 11.2v5M13.5 11.2v5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -199,6 +200,7 @@ function CardItem({
   onToggleDone,
   index = 0,
   isOverlay = false,
+  canDrag = true,
 }: {
   card: Card;
   preview?: CardPreview;
@@ -206,11 +208,12 @@ function CardItem({
   onToggleDone: (cardId: number, nextDone: boolean) => void;
   index?: number;
   isOverlay?: boolean;
+  canDrag?: boolean;
 }) {
   const sortable = useSortable({
     id: `card:${card.id}`,
     data: { type: "card", cardId: card.id, fromListId: card.list_id },
-    disabled: isOverlay,
+    disabled: isOverlay || !canDrag,
   });
 
   const style: React.CSSProperties = {
@@ -247,7 +250,7 @@ function CardItem({
       ].join(" ")}
     >
       <div className="p-3 flex gap-3 items-start">
-        {!isOverlay && (
+        {!isOverlay && canDrag && (
           <button
             type="button"
             className={[
@@ -403,6 +406,7 @@ function ListColumn({
   onOpenCard,
   onToggleDone,
   columnIndex,
+  canManage,
 }: {
   list: List;
   cards: Card[];
@@ -413,6 +417,7 @@ function ListColumn({
   onOpenCard: (cardId: number) => void;
   onToggleDone: (cardId: number, nextDone: boolean) => void;
   columnIndex: number;
+  canManage: boolean;
 }) {
   const drop = useDroppable({
     id: `list:${list.id}`,
@@ -481,9 +486,9 @@ function ListColumn({
           ) : (
             <button
               type="button"
-              onDoubleClick={() => setIsEditingTitle(true)}
+              onDoubleClick={() => canManage && setIsEditingTitle(true)}
               className="max-w-[170px] font-extrabold text-slate-900 truncate text-left"
-              title="Double click to rename list"
+              title={canManage ? "Double click to rename list" : list.title}
             >
               {list.title}
             </button>
@@ -494,7 +499,9 @@ function ListColumn({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button
+          {canManage && (
+            <>
+              <button
             type="button"
             onClick={() => onAddCard(list.id)}
             className={[
@@ -507,8 +514,8 @@ function ListColumn({
           >
             <PlusIcon size={13} />
             Add card
-          </button>
-          <button
+              </button>
+              <button
             type="button"
             onClick={() => onDeleteList(list.id, list.title)}
             className={[
@@ -519,9 +526,11 @@ function ListColumn({
             ].join(" ")}
             title="Delete list"
             aria-label="Delete list"
-          >
-            <BinIcon />
-          </button>
+              >
+                <BinIcon />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -535,6 +544,7 @@ function ListColumn({
               onOpen={onOpenCard}
               onToggleDone={onToggleDone}
               index={idx}
+              canDrag={canManage}
             />
           ))}
         </SortableContext>
@@ -676,6 +686,7 @@ export default function BoardPage() {
 
   async function createList(e: React.FormEvent) {
     e.preventDefault();
+    if (!canManage) return;
     const title = newListTitle.trim();
     if (!title) return;
 
@@ -695,6 +706,7 @@ export default function BoardPage() {
   }
 
   async function createCard(listId: number) {
+    if (!canManage) return;
     setErr("");
     try {
       const res = await apiFetch("/admin/cards", {
@@ -711,6 +723,7 @@ export default function BoardPage() {
   }
 
   async function deleteList(listId: number, listTitle: string) {
+    if (!canManage) return;
     const ok = window.confirm(`Delete list "${listTitle}" and all its cards? This cannot be undone.`);
     if (!ok) return;
 
@@ -727,6 +740,7 @@ export default function BoardPage() {
   }
 
   async function renameList(listId: number, title: string): Promise<boolean> {
+    if (!canManage) return false;
     const previous = data;
     setData((d) =>
       d
@@ -796,6 +810,7 @@ export default function BoardPage() {
   }
 
   function onDragStart(e: DragStartEvent) {
+    if (!canManage) return;
     const id = String(e.active.id);
     if (id.startsWith("card:")) {
       const cid = Number(id.split(":")[1]);
@@ -806,6 +821,7 @@ export default function BoardPage() {
   }
 
   async function onDragEnd(e: DragEndEvent) {
+    if (!canManage) return;
     setActiveCardId(null);
     setActiveCardSnapshot(null);
     if (!data) return;
@@ -876,7 +892,9 @@ export default function BoardPage() {
   const pageTitle = data ? data.name : `Board #${boardID}`;
   const from = new URLSearchParams(location.search).get("from");
   const layoutActive = from === "boards" ? "boards" : "supervisors";
-  const isAdmin = (localStorage.getItem("role") || "").trim().toLowerCase() === "admin";
+  const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const isAdmin = role === "admin";
+  const canManage = role === "admin" || role === "supervisor";
 
   return (
     <AdminLayout
@@ -974,6 +992,9 @@ export default function BoardPage() {
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                      {m.nickname ? (
+                        <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
+                      ) : null}
                       <div className="truncate text-xs font-semibold text-slate-500">{m.email}</div>
                     </div>
                     <div className="flex flex-none items-center gap-2">
@@ -1019,6 +1040,7 @@ export default function BoardPage() {
               </span>
             </div>
 
+            {canManage ? (
             <form onSubmit={createList} className="flex items-center gap-2.5">
               {/* <div className="h-10 w-10 rounded-xl border border-[#6d5efc]/25 bg-gradient-to-br from-[#f2f0ff] to-[#ebe8ff] text-[#6d5efc] grid place-items-center">
                 <PlusIcon />
@@ -1038,14 +1060,15 @@ export default function BoardPage() {
                 {creatingList ? "..." : "+"}
               </button>
             </form>
+            ) : null}
           </div>
 
           {/* board */}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
+            onDragStart={canManage ? onDragStart : undefined}
+            onDragEnd={canManage ? onDragEnd : undefined}
           >
             <div className="overflow-x-auto pb-2 rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f7f8ff_0%,#eef1f8_100%)] p-3">
               <div className="flex gap-4 items-start min-h-[380px]">
@@ -1061,6 +1084,7 @@ export default function BoardPage() {
                     onOpenCard={onOpenCard}
                     onToggleDone={toggleCardDone}
                     columnIndex={colIdx}
+                    canManage={canManage}
                   />
                 ))}
 
@@ -1089,6 +1113,7 @@ export default function BoardPage() {
                   onToggleDone={toggleCardDone}
                   index={0}
                   isOverlay
+                  canDrag={false}
                 />
               ) : null}
             </DragOverlay>

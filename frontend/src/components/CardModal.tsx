@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
 import { apiFetch } from "../lib/api";
 
@@ -19,6 +19,7 @@ type Subtask = {
   is_done: boolean;
   due_date: string;
 };
+type SubtaskDraft = { title: string; due_date: string };
 
 type Assignee = {
   user_id: number;
@@ -171,6 +172,56 @@ function TagIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function TrashIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 6h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EditIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 20h9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function formatActivity(a: Activity) {
   const map: Record<string, string> = {
     card_created: "Card created",
@@ -181,6 +232,7 @@ function formatActivity(a: Activity) {
     subtask_toggled: "Subtask toggled",
     subtask_deleted: "Subtask removed",
     subtask_due_date_updated: "Subtask due updated",
+    subtask_updated: "Subtask updated",
     assignee_added: "Assignee added",
     assignee_removed: "Assignee removed",
     label_added: "Label added",
@@ -266,6 +318,10 @@ const btnGhost =
 
 const btnSoft =
   "h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+const btnDangerIcon =
+  "inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-300 bg-white text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600";
+const btnEditIcon =
+  "inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-300 bg-white text-slate-500 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
 
 const pillBase =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-extrabold";
@@ -296,6 +352,9 @@ export default function CardModal({
 
   const [card, setCard] = useState<Card | null>(null);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [subtaskDrafts, setSubtaskDrafts] = useState<Record<number, SubtaskDraft>>({});
+  const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
+  const [savingSubtaskId, setSavingSubtaskId] = useState<number | null>(null);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [boardId, setBoardId] = useState<number | null>(null);
@@ -305,6 +364,11 @@ export default function CardModal({
   const [boardLabels, setBoardLabels] = useState<Label[]>([]);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("indigo");
+  const [labelTool, setLabelTool] = useState<"none" | "edit" | "delete">("none");
+  const [selectedLabelId, setSelectedLabelId] = useState<number>(0);
+  const [editingLabelId, setEditingLabelId] = useState<number | null>(null);
+  const [editingLabelName, setEditingLabelName] = useState("");
+  const [editingLabelColor, setEditingLabelColor] = useState("indigo");
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
@@ -316,6 +380,7 @@ export default function CardModal({
 
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const assigneeInputRef = useRef<HTMLInputElement | null>(null);
 
   const [doneAnimId, setDoneAnimId] = useState<number | null>(null);
   const [rightTab, setRightTab] = useState<"comments" | "activity">("comments");
@@ -359,8 +424,12 @@ export default function CardModal({
 
     try {
       const full: CardFull = await apiFetch(`/admin/card/full?card_id=${cardId}`);
+      const loadedSubtasks = full.subtasks || [];
       setCard(full.card);
-      setSubtasks(full.subtasks || []);
+      setSubtasks(loadedSubtasks);
+      setSubtaskDrafts(
+        Object.fromEntries(loadedSubtasks.map((s) => [s.id, { title: s.title, due_date: s.due_date || "" }]))
+      );
       setAssignees(full.assignees || []);
       setActivities(full.activities || []);
       setBoardId(full.board_id);
@@ -387,10 +456,16 @@ export default function CardModal({
     setAssigneeOpen(false);
     setSubtaskTitle("");
     setSubtaskDue("");
+    setEditingSubtaskId(null);
     setDoneAnimId(null);
 
     setNewLabelName("");
     setNewLabelColor("indigo");
+    setLabelTool("none");
+    setSelectedLabelId(0);
+    setEditingLabelId(null);
+    setEditingLabelName("");
+    setEditingLabelColor("indigo");
 
     setCommentBody("");
     setEditingCommentId(null);
@@ -411,6 +486,7 @@ export default function CardModal({
   }, [assigneeOpen]);
 
   async function saveCard() {
+    if (!canManageCard) return;
     if (!card) return;
 
     setErr("");
@@ -460,6 +536,10 @@ export default function CardModal({
           due_date: subtaskDue || "",
         },
       ]);
+      setSubtaskDrafts((prev) => ({
+        ...prev,
+        [Number(res?.id)]: { title: subtaskTitle.trim(), due_date: subtaskDue || "" },
+      }));
       setSubtaskTitle("");
       setSubtaskDue("");
     } catch (e: any) {
@@ -494,8 +574,52 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id }),
       });
       setSubtasks((prev) => prev.filter((s) => s.id !== id));
+      setSubtaskDrafts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (e: any) {
       setErr(e.message || "Failed to delete subtask");
+    }
+  }
+
+  async function saveSubtaskEdits(id: number, draftOverride?: SubtaskDraft) {
+    const base = subtasks.find((s) => s.id === id);
+    const draft = draftOverride || subtaskDrafts[id];
+    if (!base || !draft) return;
+
+    const nextTitle = draft.title.trim();
+    const nextDue = draft.due_date || "";
+    if (!nextTitle) {
+      setErr("Subtask title is required");
+      setSubtaskDrafts((prev) => ({ ...prev, [id]: { title: base.title, due_date: base.due_date || "" } }));
+      return;
+    }
+    if (nextTitle === base.title && nextDue === (base.due_date || "")) return;
+
+    setErr("");
+    setMsg("");
+    const backup = base;
+    setSavingSubtaskId(id);
+    setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, title: nextTitle, due_date: nextDue } : s)));
+
+    try {
+      await apiFetch("/admin/card/subtasks/update", {
+        method: "POST",
+        body: JSON.stringify({ subtask_id: id, title: nextTitle, due_date: nextDue }),
+      });
+    } catch (e: any) {
+      setErr(e.message || "Failed to update subtask");
+      setSubtasks((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, title: backup.title, due_date: backup.due_date || "" } : s))
+      );
+      setSubtaskDrafts((prev) => ({
+        ...prev,
+        [id]: { title: backup.title, due_date: backup.due_date || "" },
+      }));
+    } finally {
+      setSavingSubtaskId((curr) => (curr === id ? null : curr));
     }
   }
 
@@ -536,6 +660,7 @@ export default function CardModal({
       });
       setAssigneeQuery("");
       setAssigneeOpen(false);
+      assigneeInputRef.current?.blur();
     } catch (e: any) {
       setErr(e.message || "Failed to add assignee");
       setAssignees((prev) => prev.filter((a) => a.user_id !== userId));
@@ -583,6 +708,77 @@ export default function CardModal({
       }
     } catch (e: any) {
       setErr(e.message || "Failed to update label");
+    }
+  }
+
+  useEffect(() => {
+    if (boardLabels.length === 0) {
+      setSelectedLabelId(0);
+      return;
+    }
+    if (!selectedLabelId || !boardLabels.some((l) => l.id === selectedLabelId)) {
+      setSelectedLabelId(boardLabels[0].id);
+    }
+  }, [boardLabels, selectedLabelId]);
+
+  function startEditLabel() {
+    const effectiveId = selectedLabelId || boardLabels[0]?.id;
+    if (!effectiveId) return;
+    const label = boardLabels.find((l) => l.id === effectiveId);
+    if (!label) return;
+    setSelectedLabelId(effectiveId);
+    setEditingLabelId(label.id);
+    setEditingLabelName(label.name);
+    setEditingLabelColor(label.color || "indigo");
+    setLabelTool("edit");
+  }
+
+  function cancelEditLabel() {
+    setEditingLabelId(null);
+    setEditingLabelName("");
+    setEditingLabelColor("indigo");
+    setLabelTool("none");
+  }
+
+  async function saveLabelEdits() {
+    if (!editingLabelId || !editingLabelName.trim()) return;
+    setErr("");
+    setMsg("");
+    const nextName = editingLabelName.trim();
+    const nextColor = editingLabelColor;
+    try {
+      await apiFetch("/admin/labels/update", {
+        method: "POST",
+        body: JSON.stringify({ label_id: editingLabelId, name: nextName, color: nextColor }),
+      });
+      setBoardLabels((prev) =>
+        prev.map((l) => (l.id === editingLabelId ? { ...l, name: nextName, color: nextColor } : l))
+      );
+      setCardLabels((prev) =>
+        prev.map((l) => (l.label_id === editingLabelId ? { ...l, name: nextName, color: nextColor } : l))
+      );
+      cancelEditLabel();
+    } catch (e: any) {
+      setErr(e.message || "Failed to update label");
+    }
+  }
+
+  async function deleteLabel(labelId: number) {
+    const ok = window.confirm("Delete this label?");
+    if (!ok) return;
+    setErr("");
+    setMsg("");
+    try {
+      await apiFetch("/admin/labels/delete", {
+        method: "POST",
+        body: JSON.stringify({ label_id: labelId }),
+      });
+      setBoardLabels((prev) => prev.filter((l) => l.id !== labelId));
+      setCardLabels((prev) => prev.filter((l) => l.label_id !== labelId));
+      if (editingLabelId === labelId) cancelEditLabel();
+      setLabelTool("none");
+    } catch (e: any) {
+      setErr(e.message || "Failed to delete label");
     }
   }
 
@@ -684,7 +880,8 @@ export default function CardModal({
   const dueBadgeText = isOverdue ? "Overdue" : card?.due_date ? "Scheduled" : "None";
   const isDone = card?.status === "done";
   const currentRole = (localStorage.getItem("role") || "").toLowerCase();
-  const canDeleteCard = currentRole === "admin" || currentRole === "supervisor";
+  const canManageCard = currentRole === "admin" || currentRole === "supervisor";
+  const canDeleteCard = canManageCard;
 
   return (
     <Modal
@@ -695,19 +892,23 @@ export default function CardModal({
         <>
           {canDeleteCard && (
             <button
-              className="h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-70"
+              className={`${btnDangerIcon} disabled:opacity-70`}
               onClick={deleteCard}
               disabled={loading || saving || deleting || !card}
+              title={deleting ? "Deleting..." : "Delete card"}
+              aria-label={deleting ? "Deleting card" : "Delete card"}
             >
-              {deleting ? "Deleting..." : "Delete card"}
+              <TrashIcon size={18} />
             </button>
           )}
           <button className={btnGhost} onClick={onClose}>
             Cancel
           </button>
-          <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
-            {saving ? "Saving..." : "Save"}
-          </button>
+          {canManageCard && (
+            <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+          )}
         </>
       }
     >
@@ -738,12 +939,23 @@ export default function CardModal({
                         <CheckIcon size={12} />
                         {isDone ? "Done" : "Open"}
                       </span>
-                      <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>
-                        {prettyPriority(card.priority)}
-                      </span>
-                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
+                      <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>{prettyPriority(card.priority)}</span>
+                      {canManageCard ? (
+                        <select
+                          className="h-7 rounded-full border border-slate-300 bg-white px-2.5 text-[12px] font-extrabold text-slate-700"
+                          value={card.priority}
+                          onChange={(e) => setCard({ ...card, priority: e.target.value as Card["priority"] })}
+                          title="Priority"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                      ) : null}
+                      {/* <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
                         Mark done from board card
-                      </span>
+                      </span> */}
                     </div>
 
                     <div className="grid gap-2 xl:grid-cols-12">
@@ -759,6 +971,7 @@ export default function CardModal({
                           value={card.title}
                           onChange={(e) => setCard({ ...card, title: e.target.value })}
                           placeholder="Card title"
+                          disabled={!canManageCard}
                         />
                       </div>
 
@@ -782,11 +995,13 @@ export default function CardModal({
                             type="date"
                             value={card.due_date || ""}
                             onChange={(e) => setCard({ ...card, due_date: e.target.value })}
+                            disabled={!canManageCard}
                           />
                           <button
                             className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50"
                             type="button"
                             onClick={() => setCard({ ...card, due_date: "" })}
+                            disabled={!canManageCard}
                           >
                             Clear
                           </button>
@@ -804,6 +1019,7 @@ export default function CardModal({
                         onChange={(e) => setCard({ ...card, description: e.target.value })}
                         placeholder="Notes, requirements, links..."
                         rows={4}
+                        disabled={!canManageCard}
                       />
                     </div>
 
@@ -824,65 +1040,71 @@ export default function CardModal({
                                 {initials(a.full_name)}
                               </span>
                               <span className="text-[12px] font-black">{a.full_name}</span>
-                              <button
-                                className="h-[26px] rounded-[10px] border border-slate-900/10 bg-white/70 px-2 text-[12px] font-black hover:bg-rose-500/10"
-                                type="button"
-                                onClick={() => removeAssignee(a.user_id)}
-                                title="Remove"
-                              >
-                                ×
-                              </button>
+                              {canManageCard ? (
+                                <button
+                                  className="h-[26px] rounded-[10px] border border-slate-900/10 bg-white/70 px-2 text-[12px] font-black hover:bg-rose-500/10"
+                                  type="button"
+                                  onClick={() => removeAssignee(a.user_id)}
+                                  title="Remove"
+                                >
+                                  ×
+                                </button>
+                              ) : null}
                             </div>
                           ))}
                         </div>
                       )}
 
-                      <div className="h-1.5" />
-
-                      {studentsOnly.length === 0 ? (
-                        <div className="text-[13px] font-semibold text-slate-500">
-                          No students in this board yet. Add them from members.
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <input
-                            className={inputBase}
-                            placeholder="Search student to assign..."
-                            value={assigneeQuery}
-                            onChange={(e) => {
-                              setAssigneeQuery(e.target.value);
-                              setAssigneeOpen(true);
-                            }}
-                            onFocus={() => setAssigneeOpen(true)}
-                            onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
-                          />
-                          {assigneeOpen && availableStudents.length > 0 && (
-                            <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-[14px] border border-slate-900/10 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
-                              <div className="grid gap-2">
-                                {availableStudents.map((m) => (
-                                  <button
-                                    key={m.user_id}
-                                    type="button"
-                                    className="flex h-10 w-full items-center justify-between gap-3 rounded-[14px] border border-slate-900/10 bg-white px-3 text-left font-extrabold hover:bg-indigo-500/[0.04]"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => addAssignee(m.user_id)}
-                                  >
-                                    <span className="flex min-w-0 items-center gap-3">
-                                      <span className="grid h-[24px] w-[24px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
-                                        {initials(m.full_name)}
-                                      </span>
-                                      <span className="min-w-0">
-                                        <span className="block truncate text-[13px] font-black text-slate-900">{m.full_name}</span>
-                                        <span className="block truncate text-[12px] font-semibold text-slate-500">{m.email}</span>
-                                      </span>
-                                    </span>
-                                    <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>Add</span>
-                                  </button>
-                                ))}
-                              </div>
+                      {canManageCard && (
+                        <>
+                          <div className="h-1.5" />
+                          {studentsOnly.length === 0 ? (
+                            <div className="text-[13px] font-semibold text-slate-500">
+                              No students in this board yet. Add them from members.
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                ref={assigneeInputRef}
+                                className={inputBase}
+                                placeholder="Search student to assign..."
+                                value={assigneeQuery}
+                                onChange={(e) => {
+                                  setAssigneeQuery(e.target.value);
+                                  setAssigneeOpen(true);
+                                }}
+                                onFocus={() => setAssigneeOpen(true)}
+                                onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
+                              />
+                              {assigneeOpen && availableStudents.length > 0 && (
+                                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-[14px] border border-slate-900/10 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+                                  <div className="grid gap-2">
+                                    {availableStudents.map((m) => (
+                                      <button
+                                        key={m.user_id}
+                                        type="button"
+                                        className="flex h-10 w-full items-center justify-between gap-3 rounded-[14px] border border-slate-900/10 bg-white px-3 text-left font-extrabold hover:bg-indigo-500/[0.04]"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => addAssignee(m.user_id)}
+                                      >
+                                        <span className="flex min-w-0 items-center gap-3">
+                                          <span className="grid h-[24px] w-[24px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
+                                            {initials(m.full_name)}
+                                          </span>
+                                          <span className="min-w-0">
+                                            <span className="block truncate text-[13px] font-black text-slate-900">{m.full_name}</span>
+                                            <span className="block truncate text-[12px] font-semibold text-slate-500">{m.email}</span>
+                                          </span>
+                                        </span>
+                                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>Add</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
+                        </>
                       )}
                     </div>
 
@@ -912,48 +1134,54 @@ export default function CardModal({
                         </div>
                       )}
 
-                      <div className="h-1.5" />
+                      {canManageCard && (
+                        <>
+                          <div className="h-1.5" />
 
-                      <div className="grid gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            className={inputBase}
-                            placeholder="Add an item..."
-                            value={subtaskTitle}
-                            onChange={(e) => setSubtaskTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addSubtask();
-                              }
-                            }}
-                          />
-                          <button className={btnPrimary} onClick={addSubtask} disabled={!subtaskTitle.trim()}>
-                            Add
-                          </button>
-                        </div>
+                          <div className="grid gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input
+                                className={inputBase}
+                                placeholder="Add an item..."
+                                value={subtaskTitle}
+                                onChange={(e) => setSubtaskTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addSubtask();
+                                  }
+                                }}
+                              />
+                              <button className={btnPrimary} onClick={addSubtask} disabled={!subtaskTitle.trim()}>
+                                Add
+                              </button>
+                            </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
-                            <ClockIcon /> Due (optional)
-                          </span>
-                          <input
-                            className={inputBase + " max-w-[220px]"}
-                            type="date"
-                            value={subtaskDue}
-                            onChange={(e) => setSubtaskDue(e.target.value)}
-                          />
-                          <button className={btnSoft} type="button" onClick={() => setSubtaskDue("")}>
-                            Clear
-                          </button>
-                        </div>
-                      </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
+                                <ClockIcon /> Due (optional)
+                              </span>
+                              <input
+                                className={inputBase + " max-w-[220px]"}
+                                type="date"
+                                value={subtaskDue}
+                                onChange={(e) => setSubtaskDue(e.target.value)}
+                              />
+                              <button className={btnSoft} type="button" onClick={() => setSubtaskDue("")}>
+                                Clear
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
 
                       <div className="h-1.5" />
 
                       {subtasks.length > 0 && (
                         <div className="grid gap-2">
                           {subtasks.map((s) => {
+                            const draft = subtaskDrafts[s.id] || { title: s.title, due_date: s.due_date || "" };
+                            const isEditing = editingSubtaskId === s.id;
                             const overdue = s.due_date ? isDateOverdue(s.due_date) : false;
                             const today = s.due_date ? isDateToday(s.due_date) : false;
 
@@ -973,14 +1201,86 @@ export default function CardModal({
                                     checked={s.is_done}
                                     onChange={(e) => toggleSubtask(s.id, e.target.checked)}
                                   />
-                                  <div
-                                    className={[
-                                      "flex-1 text-[13px] font-semibold",
-                                      s.is_done ? "text-slate-500 line-through" : "text-slate-900",
-                                    ].join(" ")}
-                                  >
-                                    {s.title}
-                                  </div>
+                                  {isEditing && canManageCard ? (
+                                    <>
+                                      <input
+                                        className={[
+                                          inputBase,
+                                          "h-8 min-w-[180px] flex-1 text-[13px]",
+                                          s.is_done ? "text-slate-500 line-through" : "text-slate-900",
+                                        ].join(" ")}
+                                        autoFocus
+                                        value={draft.title}
+                                        onChange={(e) =>
+                                          setSubtaskDrafts((prev) => ({
+                                            ...prev,
+                                            [s.id]: { ...draft, title: e.target.value },
+                                          }))
+                                        }
+                                        onKeyDown={async (e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            await saveSubtaskEdits(s.id);
+                                            setEditingSubtaskId(null);
+                                          } else if (e.key === "Escape") {
+                                            e.preventDefault();
+                                            setSubtaskDrafts((prev) => ({
+                                              ...prev,
+                                              [s.id]: { title: s.title, due_date: s.due_date || "" },
+                                            }));
+                                            setEditingSubtaskId(null);
+                                          }
+                                        }}
+                                      />
+                                      <input
+                                        className={inputBase + " h-8 w-[160px] text-[13px]"}
+                                        type="date"
+                                        value={draft.due_date || ""}
+                                        onChange={(e) =>
+                                          setSubtaskDrafts((prev) => ({
+                                            ...prev,
+                                            [s.id]: { ...draft, due_date: e.target.value },
+                                          }))
+                                        }
+                                        onKeyDown={async (e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            await saveSubtaskEdits(s.id);
+                                            setEditingSubtaskId(null);
+                                          } else if (e.key === "Escape") {
+                                            e.preventDefault();
+                                            setSubtaskDrafts((prev) => ({
+                                              ...prev,
+                                              [s.id]: { title: s.title, due_date: s.due_date || "" },
+                                            }));
+                                            setEditingSubtaskId(null);
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        className="h-8 rounded-[10px] border border-slate-300 bg-white px-2.5 text-[12px] font-extrabold text-slate-700 hover:bg-slate-50"
+                                        type="button"
+                                        onClick={() =>
+                                          setSubtaskDrafts((prev) => ({
+                                            ...prev,
+                                            [s.id]: { ...draft, due_date: "" },
+                                          }))
+                                        }
+                                        title="Clear due date"
+                                      >
+                                        Clear
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div
+                                      className={[
+                                        "flex-1 text-[13px] font-semibold",
+                                        s.is_done ? "text-slate-500 line-through" : "text-slate-900",
+                                      ].join(" ")}
+                                    >
+                                      {s.title}
+                                    </div>
+                                  )}
                                   <span
                                     className={[
                                       pillBase,
@@ -993,9 +1293,37 @@ export default function CardModal({
                                     <ClockIcon />
                                     {s.due_date || "No due"}
                                   </span>
-                                  <button className={btnSoft} type="button" onClick={() => deleteSubtask(s.id)}>
-                                    Remove
-                                  </button>
+                                  {savingSubtaskId === s.id ? (
+                                    <span className="text-[11px] font-semibold text-slate-500">Saving...</span>
+                                  ) : null}
+                                  {canManageCard ? (
+                                    <>
+                                      <button
+                                        className={btnEditIcon}
+                                        type="button"
+                                        onClick={() => {
+                                          setSubtaskDrafts((prev) => ({
+                                            ...prev,
+                                            [s.id]: { title: s.title, due_date: s.due_date || "" },
+                                          }));
+                                          setEditingSubtaskId(s.id);
+                                        }}
+                                        title="Edit item"
+                                        aria-label="Edit item"
+                                      >
+                                        <EditIcon size={16} />
+                                      </button>
+                                      <button
+                                        className={btnDangerIcon}
+                                        type="button"
+                                        onClick={() => deleteSubtask(s.id)}
+                                        title="Delete item"
+                                        aria-label="Delete item"
+                                      >
+                                        <TrashIcon size={16} />
+                                      </button>
+                                    </>
+                                  ) : null}
                                 </div>
                               </div>
                             );
@@ -1009,9 +1337,39 @@ export default function CardModal({
                         <div className={`flex items-center gap-2 ${sectionTitle}`}>
                           <TagIcon /> Labels
                         </div>
-                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                          {cardLabels.length}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
+                            {cardLabels.length}
+                          </span>
+                          {canManageCard ? (
+                            <>
+                              <button
+                                className={btnEditIcon + " h-7 w-7"}
+                                type="button"
+                                onClick={startEditLabel}
+                                title="Edit label"
+                                aria-label="Edit label"
+                                disabled={boardLabels.length === 0}
+                              >
+                                <EditIcon size={14} />
+                              </button>
+                              <button
+                                className={btnDangerIcon + " h-7 w-7"}
+                                type="button"
+                                onClick={() => {
+                                  setLabelTool("delete");
+                                  setEditingLabelId(null);
+                                  if (!selectedLabelId && boardLabels[0]) setSelectedLabelId(boardLabels[0].id);
+                                }}
+                                title="Delete label"
+                                aria-label="Delete label"
+                                disabled={boardLabels.length === 0}
+                              >
+                                <TrashIcon size={14} />
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="grid gap-2 lg:grid-cols-2 lg:items-start">
@@ -1027,19 +1385,19 @@ export default function CardModal({
                                   <button
                                     key={l.id}
                                     type="button"
-                                    onClick={() => toggleLabel(l.id)}
+                                    onClick={() => canManageCard && toggleLabel(l.id)}
+                                    disabled={!canManageCard}
                                     className={[
                                       "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold text-[13px]",
                                       active
                                         ? "border-indigo-500/35 bg-indigo-500/10"
                                         : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
+                                      !canManageCard ? "cursor-default opacity-90 hover:bg-white/85" : "",
                                     ].join(" ")}
                                   >
                                     <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
                                     <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                                    <span className="text-[11px] font-extrabold text-slate-500">
-                                      {active ? "On" : "Off"}
-                                    </span>
+                                    <span className="text-[11px] font-extrabold text-slate-500">{active ? "On" : "Off"}</span>
                                   </button>
                                 );
                               })}
@@ -1047,8 +1405,92 @@ export default function CardModal({
                           )}
                         </div>
 
+                        {canManageCard ? (
                         <div className="rounded-[12px] border border-slate-200 bg-white p-2.5">
-                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">Create a new label</div>
+                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">
+                            {labelTool === "edit" ? "Edit label" : labelTool === "delete" ? "Delete label" : "Create a new label"}
+                          </div>
+                          {labelTool !== "none" && boardLabels.length > 0 && (
+                            <div className="mb-2 rounded-[10px] border border-slate-300 bg-slate-50 p-2">
+                              <div className="mb-1 text-[11px] font-extrabold text-slate-600">Choose label</div>
+                              <select
+                                className={inputBase + " h-8 text-[12px]"}
+                                value={selectedLabelId || boardLabels[0]?.id || 0}
+                                onChange={(e) => {
+                                  const id = Number(e.target.value);
+                                  setSelectedLabelId(id);
+                                  if (labelTool === "edit") {
+                                    const selected = boardLabels.find((l) => l.id === id);
+                                    if (selected) {
+                                      setEditingLabelId(selected.id);
+                                      setEditingLabelName(selected.name);
+                                      setEditingLabelColor(selected.color || "indigo");
+                                    }
+                                  }
+                                }}
+                              >
+                                {boardLabels.map((l) => (
+                                  <option key={l.id} value={l.id}>
+                                    {l.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {labelTool === "delete" && (
+                                <div className="mt-2 flex justify-end">
+                                  <button
+                                    className={btnDangerIcon + " h-8 w-8"}
+                                    type="button"
+                                    onClick={() => deleteLabel(selectedLabelId || boardLabels[0].id)}
+                                    title="Delete selected label"
+                                  >
+                                    <TrashIcon size={15} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {labelTool === "edit" ? (
+                            <div className="grid gap-2">
+                              <input
+                                className={inputBase}
+                                placeholder="Label name..."
+                                value={editingLabelName}
+                                onChange={(e) => setEditingLabelName(e.target.value)}
+                              />
+                              <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-slate-300 bg-slate-50 p-2">
+                                {labelColorChoices.map((c) => (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    onClick={() => setEditingLabelColor(c.value)}
+                                    className={[
+                                      "grid h-7 w-7 place-items-center rounded-full border transition",
+                                      editingLabelColor === c.value
+                                        ? "border-slate-900/50 bg-white shadow-[0_0_0_2px_rgba(99,102,241,0.22)]"
+                                        : "border-slate-300 bg-white hover:border-slate-400",
+                                    ].join(" ")}
+                                    title={c.value}
+                                  >
+                                    <span className={`h-4 w-4 rounded-full ${c.className}`} />
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <button className={btnGhost} type="button" onClick={cancelEditLabel}>
+                                  Cancel
+                                </button>
+                                <button
+                                  className={btnPrimary}
+                                  type="button"
+                                  onClick={saveLabelEdits}
+                                  disabled={!editingLabelName.trim() || !editingLabelId}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
                           <div className="grid gap-2">
                             <input
                               className={inputBase}
@@ -1090,7 +1532,10 @@ export default function CardModal({
                               Create
                             </button>
                           </div>
+                            </>
+                          )}
                         </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1163,8 +1608,8 @@ export default function CardModal({
                                       <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
                                     </div>
 
-                                    {editingCommentId === c.id ? (
-                                      <div className="mt-2 grid gap-2">
+                                {editingCommentId === c.id && canManageCard ? (
+                                  <div className="mt-2 grid gap-2">
                                         <textarea
                                           className={inputBase + " h-auto py-2.5"}
                                           value={editingBody}
@@ -1198,13 +1643,25 @@ export default function CardModal({
                                       </div>
                                     )}
 
-                                    {editingCommentId !== c.id && (
-                                      <div className="mt-2 flex gap-2">
-                                        <button className={btnSoft} type="button" onClick={() => startEditComment(c)}>
-                                          Edit
+                                {editingCommentId !== c.id && canManageCard && (
+                                  <div className="mt-2 flex gap-2">
+                                        <button
+                                          className={btnEditIcon}
+                                          type="button"
+                                          onClick={() => startEditComment(c)}
+                                          title="Edit comment"
+                                          aria-label="Edit comment"
+                                        >
+                                          <EditIcon size={17} />
                                         </button>
-                                        <button className={btnSoft} type="button" onClick={() => deleteComment(c.id)}>
-                                          Delete
+                                        <button
+                                          className={btnDangerIcon}
+                                          type="button"
+                                          onClick={() => deleteComment(c.id)}
+                                          title="Delete comment"
+                                          aria-label="Delete comment"
+                                        >
+                                          <TrashIcon size={17} />
                                         </button>
                                       </div>
                                     )}

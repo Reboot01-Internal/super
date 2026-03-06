@@ -16,6 +16,7 @@ type BoardRow = {
 type BoardMember = {
   user_id: number;
   full_name: string;
+  nickname?: string;
   email: string;
   role: string;
   role_in_board: string;
@@ -159,9 +160,8 @@ function UsersIcon({ size = 14 }: { size?: number }) {
 function PencilIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="m12 6 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M14 4l2-2 4 4-2 2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -673,6 +673,9 @@ export default function AdminBoardsPage() {
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                      {m.nickname ? (
+                        <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
+                      ) : null}
                       <div className="truncate text-xs font-semibold text-slate-500">{m.email}</div>
                     </div>
                     <div className="flex flex-none items-center gap-2">
