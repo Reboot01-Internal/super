@@ -137,6 +137,17 @@ function UserIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function UsersIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M16 21v-1.6a3.6 3.6 0 0 0-3.6-3.6H7.2a3.6 3.6 0 0 0-3.6 3.6V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="9.8" cy="8.8" r="3.6" stroke="currentColor" strokeWidth="2" />
+      <path d="M20.2 21v-1.6a3.6 3.6 0 0 0-3.1-3.56" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M15.6 5.2a3.6 3.6 0 0 1 0 7.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function ArrowIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -434,27 +445,42 @@ export default function AdminBoardsPage() {
                 >
                   {/* Top */}
                   <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span
-                        className="
-                          grid place-items-center
-                          h-10 w-10 rounded-2xl
-                          border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc]
-                          flex-none
-                        "
-                        aria-hidden="true"
-                      >
-                        <BoardIcon />
-                      </span>
-
-                      <div className="min-w-0">
-                        <div
-                          className="truncate text-[16px] font-black text-slate-900/92"
-                          title={b.name}
+                    <div className="flex items-start justify-between gap-2.5 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          className="
+                            grid place-items-center
+                            h-10 w-10 rounded-2xl
+                            border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc]
+                            flex-none
+                          "
+                          aria-hidden="true"
                         >
-                          {b.name}
+                          <BoardIcon />
+                        </span>
+
+                        <div className="min-w-0">
+                          <div
+                            className="truncate text-[16px] font-black text-slate-900/92"
+                            title={b.name}
+                          >
+                            {b.name}
+                          </div>
                         </div>
                       </div>
+
+                      <button
+                        type="button"
+                        className="h-8 w-8 grid place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                        title="Board members"
+                        aria-label="Board members"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          nav(`/admin/boards/${b.id}/members`);
+                        }}
+                      >
+                        <UsersIcon />
+                      </button>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -528,7 +554,7 @@ export default function AdminBoardsPage() {
                       </span>
                     </div>
 
-                    <div
+                    <span
                       className="
                         inline-flex items-center gap-2
                         text-[12px] font-black text-slate-900/62
@@ -538,7 +564,7 @@ export default function AdminBoardsPage() {
                       "
                     >
                       Open board <ArrowIcon />
-                    </div>
+                    </span>
                   </div>
                 </div>
               );
