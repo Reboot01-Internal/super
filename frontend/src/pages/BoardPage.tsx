@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 
@@ -520,6 +520,7 @@ function ListColumn({
 
 export default function BoardPage() {
   const nav = useNavigate();
+  const location = useLocation();
   const { boardId } = useParams();
   const boardID = Number(boardId);
 
@@ -825,10 +826,12 @@ export default function BoardPage() {
   }
 
   const pageTitle = data ? data.name : `Board #${boardID}`;
+  const from = new URLSearchParams(location.search).get("from");
+  const layoutActive = from === "boards" ? "boards" : "supervisors";
 
   return (
     <AdminLayout
-      active="supervisors"
+      active={layoutActive}
       title={pageTitle}
       subtitle="Drag cards across lists. Double click a card to open."
       right={

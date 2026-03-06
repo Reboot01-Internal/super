@@ -412,11 +412,11 @@ export default function AdminBoardsPage() {
                   key={b.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => nav(`/admin/boards/${b.id}`)}
+                  onClick={() => nav(`/admin/boards/${b.id}?from=boards`)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      nav(`/admin/boards/${b.id}`);
+                      nav(`/admin/boards/${b.id}?from=boards`);
                     }
                   }}
                   className="
