@@ -102,7 +102,7 @@ export default function AdminSidebar({ active }: Props) {
             </div>
           </div>
 
-          {isAdmin ? (
+          {/* {isAdmin ? (
             <button
               type="button"
               onClick={() => nav("/admin/supervisors")}
@@ -114,7 +114,7 @@ export default function AdminSidebar({ active }: Props) {
             >
               Manage supervisors
             </button>
-          ) : null}
+          ) : null} */}
         </div>
       </div>
     </aside>

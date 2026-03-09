@@ -250,57 +250,117 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid place-items-center p-5 bg-white">
-      <div className="w-full max-w-[980px] h-auto lg:h-[560px] grid grid-cols-1 lg:grid-cols-2 rounded-[28px] overflow-hidden bg-white shadow-[0_40px_100px_rgba(0,0,0,0.25)]">
-        <div
-          className="relative h-[220px] lg:h-auto bg-center bg-cover"
-          style={{ backgroundImage: `url(${placeholder})` }}
-        >
-          <div className="absolute bottom-10 left-10 text-white">
-            <h2 className="text-[28px] leading-tight mb-2">Organize your workflow</h2>
-            <p className="text-sm opacity-90">One board at a time.</p>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-[#f4f6fb] p-4 sm:p-6">
+      <div className="pointer-events-none absolute -top-16 -left-24 h-72 w-72 rounded-full bg-[#6d5efc]/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-[#9a8cff]/20 blur-3xl" />
 
-        <div className="grid place-items-center p-10">
-          <div className="w-full max-w-[340px]">
-            <h1 className="text-[28px] mb-1.5 text-[#222]">Sign In</h1>
-            <p className="text-sm text-[#666] mb-6">Access your workspace</p>
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1120px] place-items-center">
+        <div className="grid w-full grid-cols-1 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/85 shadow-[0_24px_64px_rgba(15,23,42,0.14)] backdrop-blur-sm lg:grid-cols-[1.15fr_.85fr]">
+          <section
+            className="relative min-h-[280px] p-6 sm:p-8 lg:min-h-[640px]"
+            style={{ backgroundImage: `url(${placeholder})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-900/45 to-[#6d5efc]/40" />
+            <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.7) 1px, transparent 0)", backgroundSize: "20px 20px" }} />
 
-            <form onSubmit={onLogin} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Email or Nickname"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full h-[46px] px-3.5 rounded-xl border border-[#e5e5e5] text-sm outline-none transition focus:border-[#dc586d] focus:ring-4 focus:ring-[rgba(220,88,109,0.15)]"
-              />
+            <div className="relative z-10 flex h-full flex-col justify-between">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-[12px] font-extrabold text-white backdrop-blur-md">
+                <span className="h-2 w-2 rounded-full bg-[#b7adff]" />
+                TaskFlow Workspace
+              </div>
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-[46px] px-3.5 rounded-xl border border-[#e5e5e5] text-sm outline-none transition focus:border-[#dc586d] focus:ring-4 focus:ring-[rgba(220,88,109,0.15)]"
-              />
+              <div className="max-w-[420px]">
+                <h2 className="text-[34px] font-black leading-[1.05] tracking-[-0.03em] text-white sm:text-[42px]">
+                  Manage Boards.
+                  <br />
+                  Track Progress.
+                </h2>
+                <p className="mt-3 text-[14px] font-semibold text-white/90 sm:text-[15px]">
+                  One clean workspace for admins, supervisors, and students.
+                </p>
 
-              {error && <div className="text-[13px] text-[#dc586d]">{error}</div>}
-
-              <button
-                className="w-full h-[46px] rounded-xl mt-2.5 text-white font-semibold transition disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(76,29,61,0.3)]"
-                style={{ background: "linear-gradient(135deg, #4c1d3d, #a33757)" }}
-                disabled={loading}
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
-
-            <div className="mt-7.5 text-xs text-center text-[#999]">
-              © {new Date().getFullYear()} Your App
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                  <HeroStat label="Boards" value="Live" />
+                  <HeroStat label="Cards" value="Tracked" />
+                  <HeroStat label="Teams" value="Aligned" />
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
+          <section className="grid place-items-center p-6 sm:p-8 lg:p-10">
+            <div className="w-full max-w-[360px]">
+              <div className="mb-5">
+                <div className="inline-flex items-center rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#5f50f6]">
+                  Secure Access
+                </div>
+                <h1 className="mt-2 text-[32px] font-black tracking-[-0.03em] text-slate-900">Sign In</h1>
+                <p className="mt-1 text-[14px] font-semibold text-slate-500">
+                  Enter your nickname or email to continue.
+                </p>
+              </div>
+
+              <form onSubmit={onLogin} className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Email or Nickname"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                />
+
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                />
+
+                {error ? (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                <button
+                  className="mt-1 h-[48px] w-full rounded-xl bg-[#6d5efc] text-white font-extrabold transition hover:bg-[#5f50f6] disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={loading}
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </button>
+              </form>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <MiniChip text="Admin" />
+                <MiniChip text="Supervisor" />
+                <MiniChip text="Student" />
+              </div>
+
+              <div className="mt-6 border-t border-slate-200 pt-4 text-center text-xs font-semibold text-slate-400">
+                © {new Date().getFullYear()} TaskFlow
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/25 bg-white/15 px-3 py-2 backdrop-blur-sm">
+      <div className="text-[10px] font-black uppercase tracking-[0.08em] text-white/80">{label}</div>
+      <div className="mt-0.5 text-[13px] font-black text-white">{value}</div>
+    </div>
+  );
+}
+
+function MiniChip({ text }: { text: string }) {
+  return (
+    <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
+      {text}
+    </span>
   );
 }
