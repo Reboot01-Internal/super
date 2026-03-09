@@ -31,7 +31,7 @@ export default function AdminSidebar({ active }: Props) {
         type="button"
         onClick={() => nav(to)}
         className={cn(
-          "h-11 w-full rounded-[14px] border px-3 text-left font-extrabold transition",
+          "h-10 w-full rounded-[14px] border px-3 text-left font-extrabold transition",
           "flex items-center gap-3",
           isActive
             ? "border-[#6d5efc]/25 bg-[#6d5efc]/10 text-slate-900"
@@ -74,7 +74,7 @@ export default function AdminSidebar({ active }: Props) {
         </div>
 
         {/* Nav */}
-        <nav className="grid gap-2 px-2 py-2">
+        <nav className="grid content-center auto-rows-min gap-20 px-2 py-2">
           {isAdmin ? (
             <>
               <Item id="dashboard" label="Dashboard" to="/admin" />
