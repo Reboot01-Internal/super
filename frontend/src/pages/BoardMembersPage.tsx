@@ -231,16 +231,16 @@ export default function BoardMembersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardID]);
 
-  async function searchUsers() {
+  async function fetchUsers(nextQ: string, nextRole: "all" | "student" | "supervisor") {
     setMsg("");
     setErr("");
     setSearching(true);
     try {
       const url = isSupervisor
-        ? `/supervisor/eligible-students?board_id=${boardID}&q=${encodeURIComponent(q)}`
+        ? `/supervisor/eligible-students?board_id=${boardID}&q=${encodeURIComponent(nextQ)}`
         : `/admin/eligible-users?board_id=${boardID}&role=${encodeURIComponent(
-            roleFilter
-          )}&q=${encodeURIComponent(q)}`;
+            nextRole
+          )}&q=${encodeURIComponent(nextQ)}`;
       const res = await apiFetch(url);
       setResults(res);
       setSelectedResultIds(new Set());
@@ -250,6 +250,16 @@ export default function BoardMembersPage() {
       setSearching(false);
     }
   }
+
+  async function searchUsers() {
+    await fetchUsers(q.trim(), roleFilter);
+  }
+
+  useEffect(() => {
+    if (!boardID || Number.isNaN(boardID)) return;
+    fetchUsers("", roleFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardID, roleFilter, isSupervisor]);
 
   function toggleResult(id: number) {
     setSelectedResultIds((prev) => {
@@ -406,13 +416,13 @@ export default function BoardMembersPage() {
                 </span>
                 <input
                   className="w-full bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                  placeholder="Search users..."
+                  placeholder="Search users (optional)..."
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      if (q.trim() && !searching) searchUsers();
+                      if (!searching) searchUsers();
                     }
                   }}
                 />
@@ -432,7 +442,7 @@ export default function BoardMembersPage() {
               <button
                 className="h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
                 onClick={searchUsers}
-                disabled={searching || q.trim().length < 2}
+                disabled={searching}
               >
                 {searching ? "Searching..." : "Search"}
               </button>
@@ -478,7 +488,7 @@ export default function BoardMembersPage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
               {results.length === 0 ? (
-                <div className="text-sm font-semibold text-slate-500">Search results will appear here.</div>
+                <div className="text-sm font-semibold text-slate-500">No matching users found.</div>
               ) : (
                 <div className="grid gap-2.5">
                   {results.map((u) => {
