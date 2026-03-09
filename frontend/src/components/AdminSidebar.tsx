@@ -49,7 +49,7 @@ export default function AdminSidebar({ active }: Props) {
   return (
     <aside
       className={cn(
-        "w-[280px] border-r border-slate-200 bg-white p-[18px]",
+        "w-[240px] border-r border-slate-200 bg-white p-[18px]",
 
         "h-screen sticky top-0 self-start",
 
