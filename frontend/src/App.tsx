@@ -10,6 +10,7 @@ import AdminBoardsPage from "./pages/AdminBoardsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AssignPage from "./pages/AssignPage";
 import ProfilePage from "./pages/ProfilePage";
+import AdminReportsPage from "./pages/AdminReportsPage";
 
 // ✅ change this to your real dashboard page
 // import DashboardPage from "./pages/DashboardPage";
@@ -175,6 +176,15 @@ export default function App() {
         element={
           <RequireAdmin>
             <AssignPage />
+          </RequireAdmin>
+        }
+      />
+
+      <Route
+        path="/admin/reports"
+        element={
+          <RequireAdmin>
+            <AdminReportsPage />
           </RequireAdmin>
         }
       />
