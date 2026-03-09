@@ -416,7 +416,7 @@ export default function BoardMembersPage() {
                 </span>
                 <input
                   className="w-full bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                  placeholder="Search users (optional)..."
+                  placeholder="Search users"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   onKeyDown={(e) => {

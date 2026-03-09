@@ -83,6 +83,7 @@ export default function AssignPage() {
 
   const [supQ, setSupQ] = useState("");
   const [stuQ, setStuQ] = useState("");
+  const [assignedQ, setAssignedQ] = useState("");
 
   const [selectedStuIds, setSelectedStuIds] = useState<Set<number>>(new Set());
 
@@ -131,6 +132,7 @@ export default function AssignPage() {
     if (selectedSup) {
       loadAssigned(selectedSup.id);
       setSelectedStuIds(new Set());
+      setAssignedQ("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSup?.id]);
@@ -164,6 +166,18 @@ export default function AssignPage() {
         );
       });
   }, [students, assignedIds, stuQ]);
+
+  const visibleAssigned = useMemo(() => {
+    const q = assignedQ.trim().toLowerCase();
+    return assigned.filter((s) => {
+      if (!q) return true;
+      return (
+        safeLower(s.full_name).includes(q) ||
+        safeLower(s.email).includes(q) ||
+        safeLower(s.nickname).includes(q)
+      );
+    });
+  }, [assigned, assignedQ]);
 
   function toggleStudent(id: number) {
     setSelectedStuIds((prev) => {
@@ -211,6 +225,8 @@ export default function AssignPage() {
       );
 
       await loadAssigned(supId);
+      const refreshed = await apiFetch("/admin/assign/students");
+      setStudents(refreshed || []);
       setSelectedStuIds(new Set());
       setOk(`Assigned ${ids.length} student(s).`);
     } catch (e: any) {
@@ -230,6 +246,8 @@ export default function AssignPage() {
         body: JSON.stringify({ supervisor_id: selectedSup.id, student_id: studentId }),
       });
       await loadAssigned(selectedSup.id);
+      const refreshed = await apiFetch("/admin/assign/students");
+      setStudents(refreshed || []);
     } catch (e: any) {
       setErr(e.message || "Failed to unassign");
     }
@@ -474,10 +492,19 @@ export default function AssignPage() {
 
               {selectedSup && (
                 <span className="inline-flex h-7 flex-none items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[12px] font-black text-slate-600">
-                  {assigned.length}
+                  {visibleAssigned.length}
                 </span>
               )}
             </div>
+
+            {selectedSup ? (
+              <input
+                className="mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
+                placeholder="Search assigned by name/email/nickname..."
+                value={assignedQ}
+                onChange={(e) => setAssignedQ(e.target.value)}
+              />
+            ) : null}
 
             {!selectedSup ? (
               <div className="rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-3 py-2 text-[13px] font-bold text-slate-700">
@@ -489,7 +516,7 @@ export default function AssignPage() {
               </div>
             ) : (
               <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
-                {assigned.map((s) => (
+                {visibleAssigned.map((s) => (
                   <div
                     key={s.id}
                     className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-2.5"
@@ -535,9 +562,9 @@ export default function AssignPage() {
                   </div>
                 ))}
 
-                {assigned.length === 0 && (
+                {visibleAssigned.length === 0 && (
                   <div className="rounded-[14px] border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[13px] font-bold text-slate-500">
-                    No students assigned yet.
+                    {assignedQ.trim() ? "No assigned students match this search." : "No students assigned yet."}
                   </div>
                 )}
               </div>

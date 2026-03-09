@@ -58,27 +58,35 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	var rows *sql.Rows
 	var err error
 
-if q == "" {
-  rows, err = api.conn.Query(`
-    SELECT id, full_name, nickname, email, role
-    FROM users
-    WHERE role='student' AND is_active=1
-    ORDER BY full_name ASC
-  `)
-} else {
-  rows, err = api.conn.Query(`
-    SELECT id, full_name, nickname, email, role
-    FROM users
-    WHERE role='student' AND is_active=1
-      AND (
-        LOWER(full_name) LIKE ?
-        OR LOWER(email) LIKE ?
-        OR LOWER(nickname) LIKE ?
+	if q == "" {
+		rows, err = api.conn.Query(`
+    SELECT u.id, u.full_name, u.nickname, u.email, u.role
+    FROM users u
+    WHERE u.role='student' AND u.is_active=1
+      AND NOT EXISTS (
+        SELECT 1 FROM supervisor_students ss
+        WHERE ss.student_user_id = u.id
       )
-    ORDER BY full_name ASC
+    ORDER BY u.full_name ASC
+  `)
+	} else {
+		rows, err = api.conn.Query(`
+    SELECT u.id, u.full_name, u.nickname, u.email, u.role
+    FROM users u
+    WHERE u.role='student' AND u.is_active=1
+      AND NOT EXISTS (
+        SELECT 1 FROM supervisor_students ss
+        WHERE ss.student_user_id = u.id
+      )
+      AND (
+        LOWER(u.full_name) LIKE ?
+        OR LOWER(u.email) LIKE ?
+        OR LOWER(u.nickname) LIKE ?
+      )
+    ORDER BY u.full_name ASC
     LIMIT 200
   `, qLike, qLike, qLike)
-}
+	}
 
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -150,7 +158,27 @@ func (api *API) AdminAssignAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := api.conn.Exec(`
+	var existingSupervisorID int
+	err := api.conn.QueryRow(`
+		SELECT supervisor_user_id
+		FROM supervisor_students
+		WHERE student_user_id = ?
+		LIMIT 1
+	`, body.StudentID).Scan(&existingSupervisorID)
+	if err != nil && err != sql.ErrNoRows {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	if err == nil {
+		if existingSupervisorID == body.SupervisorID {
+			writeJSON(w, 200, map[string]any{"ok": true})
+			return
+		}
+		writeErr(w, 409, "student already assigned to another supervisor")
+		return
+	}
+
+	_, err = api.conn.Exec(`
 		INSERT OR IGNORE INTO supervisor_students(supervisor_user_id, student_user_id)
 		VALUES(?, ?)
 	`, body.SupervisorID, body.StudentID)
