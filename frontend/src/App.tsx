@@ -214,6 +214,15 @@ export default function App() {
         }
       />
 
+      <Route
+        path="/profile/:userId"
+        element={
+          <RequireBoardsAccess>
+            <ProfilePage />
+          </RequireBoardsAccess>
+        }
+      />
+
       {/* ✅ Default redirect:
           - if not logged in → /login
           - if admin → /admin

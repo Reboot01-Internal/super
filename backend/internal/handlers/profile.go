@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,6 +99,36 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			uid = targetID
+		}
+	}
+
+	// Supervisors can inspect only profiles of students assigned to them.
+	if reqRole == "supervisor" {
+		if v := strings.TrimSpace(r.URL.Query().Get("user_id")); v != "" {
+			targetID, err := strconv.ParseInt(v, 10, 64)
+			if err != nil || targetID <= 0 {
+				writeErr(w, http.StatusBadRequest, "invalid user_id")
+				return
+			}
+			var allowedID int64
+			err = a.conn.QueryRow(`
+				SELECT u.id
+				FROM supervisor_students ss
+				JOIN users u ON u.id = ss.student_user_id
+				WHERE ss.supervisor_user_id = ?
+				  AND ss.student_user_id = ?
+				  AND LOWER(TRIM(IFNULL(u.role,''))) = 'student'
+				LIMIT 1
+			`, uid, targetID).Scan(&allowedID)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					writeErr(w, http.StatusForbidden, "not allowed to view this profile")
+					return
+				}
+				writeErr(w, http.StatusInternalServerError, "failed to validate profile access")
+				return
+			}
+			uid = allowedID
 		}
 	}
 

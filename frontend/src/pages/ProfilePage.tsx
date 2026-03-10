@@ -246,7 +246,10 @@ export default function ProfilePage() {
   const ownLogin = (localStorage.getItem("login") || "").trim();
   const jwt = (localStorage.getItem("jwt") || "").trim().replace(/^"|"$/g, "");
   const targetUserID = Number(params.userId || 0);
-  const isAdminViewingUser = role === "admin" && Number.isFinite(targetUserID) && targetUserID > 0;
+  const isTargetUserView =
+    Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
+  const isAdminViewingUser = role === "admin" && isTargetUserView;
+  const isSupervisorViewingStudent = role === "supervisor" && isTargetUserView;
 
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
@@ -263,10 +266,10 @@ export default function ProfilePage() {
       setErr("");
       try {
         const local = await apiFetch(
-          isAdminViewingUser ? `/admin/profile/summary?user_id=${targetUserID}` : "/admin/profile/summary"
+          isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}` : "/admin/profile/summary"
         );
         const targetLogin =
-          String(local?.user?.nickname || "").trim() || (isAdminViewingUser ? "" : ownLogin);
+          String(local?.user?.nickname || "").trim() || (isTargetUserView ? "" : ownLogin);
         const reboot = targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt) : null;
         if (!mounted) return;
         setLocalProfile(local);
@@ -282,7 +285,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [isAdminViewingUser, ownLogin, jwt, targetUserID]);
+  }, [isTargetUserView, ownLogin, jwt, targetUserID]);
 
   const displayName = useMemo(() => {
     if (rebootProfile?.user?.firstName || rebootProfile?.user?.lastName) {
@@ -326,14 +329,15 @@ export default function ProfilePage() {
   }
 
   if (role === "admin" && !isAdminViewingUser) return <Navigate to="/admin" replace />;
-  if (!isAdminViewingUser && role !== "supervisor" && role !== "student") return <Navigate to="/login" replace />;
+  if (!isTargetUserView && role !== "supervisor" && role !== "student") return <Navigate to="/login" replace />;
+  if (role === "student" && isTargetUserView) return <Navigate to="/profile" replace />;
 
   return (
     <AdminLayout
       active={isAdminViewingUser ? "users" : "profile"}
-      title={isAdminViewingUser ? "User Profile" : "My Profile"}
+      title={isTargetUserView ? "User Profile" : "My Profile"}
       subtitle={
-        isAdminViewingUser
+        isTargetUserView
           ? "User details, role information, and assignment overview."
           : "Personal info, role details, and assignment overview."
       }
@@ -343,6 +347,14 @@ export default function ProfilePage() {
             type="button"
             onClick={() => nav("/admin/users")}
             className="h-10 rounded-[14px] border border-slate-200 bg-slate-50 px-3 font-extrabold text-slate-900 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
+          >
+            Back
+          </button>
+        ) : isSupervisorViewingStudent ? (
+          <button
+            type="button"
+            onClick={() => nav("/profile")}
+            className="h-10 rounded-[14px] border border-[#6d5efc]/25 bg-[#6d5efc] px-3 font-extrabold text-white transition hover:bg-[#5f50f6]"
           >
             Back
           </button>
@@ -524,7 +536,21 @@ export default function ProfilePage() {
                     <div className="text-[13px] font-semibold text-slate-500">No assigned students yet.</div>
                   ) : (
                     (localProfile.supervisor?.assigned_students || []).map((s) => (
-                      <div key={s.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          if (role === "admin") nav(`/admin/users/${s.id}/profile`);
+                          else if (role === "supervisor") nav(`/profile/${s.id}`);
+                        }}
+                        className={[
+                          "w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition",
+                          role === "admin" || role === "supervisor"
+                            ? "cursor-pointer hover:border-[#6d5efc]/30 hover:bg-[#f7f5ff]"
+                            : "cursor-default",
+                        ].join(" ")}
+                        title={role === "admin" || role === "supervisor" ? "Open student profile" : undefined}
+                      >
                         <div className="truncate text-[13px] font-black text-slate-900">{s.full_name}</div>
                         <div className="mt-0.5 text-[12px] font-semibold text-slate-500">
                           {withAt(s.nickname)} • {s.email}
@@ -545,7 +571,7 @@ export default function ProfilePage() {
                             ))
                           )}
                         </div>
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
