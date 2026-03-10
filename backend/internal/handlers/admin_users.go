@@ -29,6 +29,11 @@ type deleteUserReq struct {
 	Email string `json:"email"`
 }
 
+type updateUserDiscordReq struct {
+	UserID        int64  `json:"user_id"`
+	DiscordUserID string `json:"discord_user_id"`
+}
+
 func genTempPassword() (string, error) {
 	return "1111", nil
 }
@@ -142,6 +147,58 @@ func (a *API) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (a *API) AdminUpdateUserDiscord(w http.ResponseWriter, r *http.Request) {
+	var req updateUserDiscordReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+
+	req.DiscordUserID = strings.TrimSpace(req.DiscordUserID)
+	if req.UserID == 0 {
+		writeErr(w, http.StatusBadRequest, "user_id required")
+		return
+	}
+
+	if err := db.UpdateUserDiscordID(a.conn, req.UserID, req.DiscordUserID); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to update discord user id")
+		return
+	}
+
+	boardRows, err := a.conn.Query(`
+		SELECT board_id
+		FROM board_members
+		WHERE user_id = ?
+	`, req.UserID)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to list related boards")
+		return
+	}
+	defer boardRows.Close()
+
+	var syncedBoards []int64
+	for boardRows.Next() {
+		var boardID int64
+		if err := boardRows.Scan(&boardID); err != nil {
+			writeErr(w, http.StatusInternalServerError, "failed to scan related boards")
+			return
+		}
+		if a.syncBoardDiscordChannel(boardID) {
+			syncedBoards = append(syncedBoards, boardID)
+		}
+	}
+	if err := boardRows.Err(); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to iterate related boards")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": len(syncedBoards) > 0,
+		"synced_boards":  syncedBoards,
+	})
+}
+
 func (a *API) AdminListSupervisors(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.conn.Query(`
 		SELECT
@@ -247,7 +304,12 @@ func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	_ = db.AddBoardMember(a.conn, boardID, createdBy, "owner")
 
-	writeJSON(w, http.StatusCreated, map[string]any{"id": boardID})
+	discordSynced := a.syncBoardDiscordChannel(boardID)
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"id":             boardID,
+		"discord_synced": discordSynced,
+	})
 }
 
 func (a *API) AdminListBoardsByFile(w http.ResponseWriter, r *http.Request) {
@@ -339,7 +401,12 @@ func (a *API) AdminUpdateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	discordSynced := a.syncBoardDiscordChannel(req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": discordSynced,
+	})
 }
 
 type addMemberReq struct {
@@ -407,7 +474,12 @@ func (a *API) AdminAddBoardMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	discordSynced := a.syncBoardDiscordChannel(req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": discordSynced,
+	})
 }
 
 func (a *API) AdminListBoardMembers(w http.ResponseWriter, r *http.Request) {
@@ -495,7 +567,12 @@ func (a *API) AdminRemoveBoardMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	discordSynced := a.syncBoardDiscordChannel(req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": discordSynced,
+	})
 }
 
 func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {

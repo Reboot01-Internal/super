@@ -12,6 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"taskflow/internal/db"
+	"taskflow/internal/discord"
 	"taskflow/internal/handlers"
 )
 
@@ -42,7 +43,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	api := handlers.NewAPI(conn)
+	api := handlers.NewAPI(conn, discord.NewFromEnv())
 
 	r := chi.NewRouter()
 
@@ -83,6 +84,7 @@ func main() {
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Post("/users", api.AdminCreateUser)
 		ar.Post("/users/delete", api.AdminDeleteUser)
+		ar.Post("/users/discord", api.AdminUpdateUserDiscord)
 		ar.Get("/users", api.AdminSearchUsers)
 
 		ar.Get("/supervisors", api.AdminListSupervisors)
@@ -170,10 +172,17 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/003_card_meta.sql",
 		"migrations/004_comments_attachments_reminders.sql",
 		"migrations/005_supervisor_assignments.sql",
+		"migrations/007_discord.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 
 	for _, f := range files {
+		if f == "migrations/007_discord.sql" {
+			if err := ensureDiscordSchema(conn); err != nil {
+				return err
+			}
+			continue
+		}
 		sqlBytes, err := os.ReadFile(f)
 		if err != nil {
 			return err
@@ -183,4 +192,64 @@ func runMigrations(conn *sql.DB) error {
 		}
 	}
 	return nil
+}
+
+func ensureDiscordSchema(conn *sql.DB) error {
+	hasColumn, err := sqliteColumnExists(conn, "users", "discord_user_id")
+	if err != nil {
+		return err
+	}
+	if !hasColumn {
+		if _, err := conn.Exec(`ALTER TABLE users ADD COLUMN discord_user_id TEXT`); err != nil {
+			return err
+		}
+	}
+
+	if _, err := conn.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_user_id
+		ON users(discord_user_id)
+		WHERE discord_user_id IS NOT NULL AND TRIM(discord_user_id) <> ''
+	`); err != nil {
+		return err
+	}
+
+	if _, err := conn.Exec(`
+		CREATE TABLE IF NOT EXISTS board_discord_channels (
+		  board_id INTEGER PRIMARY KEY,
+		  channel_id TEXT NOT NULL UNIQUE,
+		  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		  FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
+		)
+	`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func sqliteColumnExists(conn *sql.DB, tableName, columnName string) (bool, error) {
+	rows, err := conn.Query("PRAGMA table_info(" + tableName + ")")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			columnType string
+			notNull    int
+			defaultVal any
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultVal, &pk); err != nil {
+			return false, err
+		}
+		if name == columnName {
+			return true, nil
+		}
+	}
+
+	return false, rows.Err()
 }

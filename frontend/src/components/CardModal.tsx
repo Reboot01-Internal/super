@@ -368,6 +368,7 @@ export default function CardModal({
   const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
   const [savingSubtaskId, setSavingSubtaskId] = useState<number | null>(null);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
+  const [initialAssignees, setInitialAssignees] = useState<Assignee[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [boardId, setBoardId] = useState<number | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
@@ -443,6 +444,7 @@ export default function CardModal({
         Object.fromEntries(loadedSubtasks.map((s) => [s.id, { title: s.title, due_date: s.due_date || "" }]))
       );
       setAssignees(full.assignees || []);
+      setInitialAssignees(full.assignees || []);
       setActivities(full.activities || []);
       setBoardId(full.board_id);
 
@@ -517,6 +519,28 @@ export default function CardModal({
           priority: card.priority || "medium",
         }),
       });
+
+      const initialIds = new Set(initialAssignees.map((a) => a.user_id));
+      const currentIds = new Set(assignees.map((a) => a.user_id));
+
+      const removals = initialAssignees.filter((a) => !currentIds.has(a.user_id));
+      const additions = assignees.filter((a) => !initialIds.has(a.user_id));
+
+      for (const assignee of removals) {
+        await apiFetch("/admin/card/assignees/remove", {
+          method: "POST",
+          body: JSON.stringify({ card_id: card.id, user_id: assignee.user_id }),
+        });
+      }
+
+      for (const assignee of additions) {
+        await apiFetch("/admin/card/assignees/add", {
+          method: "POST",
+          body: JSON.stringify({ card_id: card.id, user_id: assignee.user_id }),
+        });
+      }
+
+      setInitialAssignees(assignees);
 
       setMsg("Saved.");
       onSaved();
@@ -659,26 +683,12 @@ export default function CardModal({
   }
 
   async function removeAssignee(userId: number) {
-    if (!card) return;
     setErr("");
     setMsg("");
-    const removed = assignees.find((a) => a.user_id === userId);
     setAssignees((prev) => prev.filter((a) => a.user_id !== userId));
-    try {
-      await apiFetch("/admin/card/assignees/remove", {
-        method: "POST",
-        body: JSON.stringify({ card_id: card.id, user_id: userId }),
-      });
-    } catch (e: any) {
-      setErr(e.message || "Failed to remove assignee");
-      if (removed) {
-        setAssignees((prev) => [removed, ...prev]);
-      }
-    }
   }
 
   async function addAssignee(userId: number) {
-    if (!card) return;
     setErr("");
     setMsg("");
     const chosen = studentsOnly.find((s) => s.user_id === userId);
@@ -688,18 +698,9 @@ export default function CardModal({
         { user_id: chosen.user_id, full_name: chosen.full_name, email: chosen.email, role: chosen.role },
       ]);
     }
-    try {
-      await apiFetch("/admin/card/assignees/add", {
-        method: "POST",
-        body: JSON.stringify({ card_id: card.id, user_id: userId }),
-      });
-      setAssigneeQuery("");
-      setAssigneeOpen(false);
-      assigneeInputRef.current?.blur();
-    } catch (e: any) {
-      setErr(e.message || "Failed to add assignee");
-      setAssignees((prev) => prev.filter((a) => a.user_id !== userId));
-    }
+    setAssigneeQuery("");
+    setAssigneeOpen(false);
+    assigneeInputRef.current?.blur();
   }
 
   async function createLabel() {

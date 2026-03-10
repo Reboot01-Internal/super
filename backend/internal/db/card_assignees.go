@@ -6,7 +6,6 @@ import (
 	"taskflow/internal/models"
 )
 
-
 func ListAssignees(conn *sql.DB, cardID int64) ([]models.CardAssignee, error) {
 	rows, err := conn.Query(`
 		SELECT u.id, u.full_name, u.email, u.role
@@ -31,13 +30,21 @@ func ListAssignees(conn *sql.DB, cardID int64) ([]models.CardAssignee, error) {
 	return out, nil
 }
 
-func AddAssignee(conn *sql.DB, cardID, userID int64) error {
-	_, err := conn.Exec(`
+func AddAssignee(conn *sql.DB, cardID, userID int64) (bool, error) {
+	res, err := conn.Exec(`
 		INSERT INTO card_assignments (card_id, user_id)
 		VALUES (?, ?)
 		ON CONFLICT(card_id, user_id) DO NOTHING
 	`, cardID, userID)
-	return err
+	if err != nil {
+		return false, err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rowsAffected > 0, nil
 }
 
 func RemoveAssignee(conn *sql.DB, cardID, userID int64) error {

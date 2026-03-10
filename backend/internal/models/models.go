@@ -7,8 +7,8 @@ type User struct {
 	Role      string `json:"role"` // admin|supervisor|student
 	IsActive  bool   `json:"is_active"`
 	CreatedAt string `json:"created_at"`
-	Nickname string `json:"nickname"` 
-	Cohort   string `json:"cohort"`  
+	Nickname  string `json:"nickname"`
+	Cohort    string `json:"cohort"`
 }
 
 type SupervisorRow struct {
@@ -30,14 +30,22 @@ type Board struct {
 }
 
 type BoardMember struct {
-	UserID      int64  `json:"user_id"`
-	FullName    string `json:"full_name"`
-	Email       string `json:"email"`
-	Role        string `json:"role"` // admin/supervisor/student
-	Nickname    string `json:"nickname"`
-	Cohort      string `json:"cohort"`
-	RoleInBoard string `json:"role_in_board"`
-	AddedAt     string `json:"added_at"`
+	UserID        int64  `json:"user_id"`
+	FullName      string `json:"full_name"`
+	Email         string `json:"email"`
+	Role          string `json:"role"` // admin/supervisor/student
+	Nickname      string `json:"nickname"`
+	Cohort        string `json:"cohort"`
+	DiscordUserID string `json:"discord_user_id,omitempty"`
+	RoleInBoard   string `json:"role_in_board"`
+	AddedAt       string `json:"added_at"`
+}
+
+type BoardDiscordMember struct {
+	UserID        int64  `json:"user_id"`
+	FullName      string `json:"full_name"`
+	Nickname      string `json:"nickname"`
+	DiscordUserID string `json:"discord_user_id"`
 }
 
 type List struct {
@@ -114,11 +122,11 @@ type CardAttachment struct {
 }
 
 type CardReminder struct {
-	ID       int64  `json:"id"`
-	CardID   int64  `json:"card_id"`
-	UserID   int64  `json:"user_id"`
-	RemindAt string `json:"remind_at"`
-	IsSent   bool   `json:"is_sent"`
+	ID        int64  `json:"id"`
+	CardID    int64  `json:"card_id"`
+	UserID    int64  `json:"user_id"`
+	RemindAt  string `json:"remind_at"`
+	IsSent    bool   `json:"is_sent"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -127,19 +135,19 @@ type BoardFull struct {
 	FileID  int64  `json:"supervisor_file_id"`
 	Name    string `json:"name"`
 
-	Lists []List `json:"lists"`
-	Cards []Card `json:"cards"`
+	Lists  []List  `json:"lists"`
+	Cards  []Card  `json:"cards"`
 	Labels []Label `json:"labels"`
 }
 
 type CardFull struct {
-	Card        Card            `json:"card"`
-	Subtasks    []CardSubtask   `json:"subtasks"`
-	Assignees   []CardAssignee  `json:"assignees"`
-	Activities  []CardActivity  `json:"activities"`
-	Labels      []CardLabel     `json:"labels"`
-	Comments    []CardComment   `json:"comments"`
+	Card        Card             `json:"card"`
+	Subtasks    []CardSubtask    `json:"subtasks"`
+	Assignees   []CardAssignee   `json:"assignees"`
+	Activities  []CardActivity   `json:"activities"`
+	Labels      []CardLabel      `json:"labels"`
+	Comments    []CardComment    `json:"comments"`
 	Attachments []CardAttachment `json:"attachments"`
-	Reminders   []CardReminder  `json:"reminders"`
-	BoardID     int64           `json:"board_id"`
+	Reminders   []CardReminder   `json:"reminders"`
+	BoardID     int64            `json:"board_id"`
 }

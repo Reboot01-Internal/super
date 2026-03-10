@@ -4,14 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+
+	"taskflow/internal/discord"
 )
 
 type API struct {
-	conn *sql.DB
+	conn    *sql.DB
+	discord *discord.Service
 }
 
-func NewAPI(conn *sql.DB) *API {
-	return &API{conn: conn}
+func NewAPI(conn *sql.DB, discordSvc *discord.Service) *API {
+	return &API{conn: conn, discord: discordSvc}
 }
 
 // Shared JSON helpers (use everywhere)

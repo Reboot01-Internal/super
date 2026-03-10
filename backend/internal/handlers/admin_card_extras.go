@@ -126,7 +126,12 @@ func (a *API) SupervisorAddBoardMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	discordSynced := a.syncBoardDiscordChannel(req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": discordSynced,
+	})
 }
 
 //
@@ -867,14 +872,25 @@ func (a *API) AdminAddAssignee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.AddAssignee(a.conn, req.CardID, req.UserID); err != nil {
+	inserted, err := db.AddAssignee(a.conn, req.CardID, req.UserID)
+	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed")
 		return
 	}
 
 	actor := actorID(r, a.conn)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "assignee_added", "user_id="+strconv.FormatInt(req.UserID, 10))
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+
+	discordNotified := false
+	if inserted {
+		discordNotified = a.notifyCardAssigned(req.CardID, req.UserID, actor)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":                 true,
+		"discord_notified":   discordNotified,
+		"assignment_created": inserted,
+	})
 }
 
 func (a *API) AdminRemoveAssignee(w http.ResponseWriter, r *http.Request) {
