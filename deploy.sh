@@ -36,7 +36,7 @@ echo ""
 # ---------- build backend ----------
 echo "==> Building Go backend..."
 cd "${REPO_DIR}/backend"
-CGO_ENABLED=1 go build -o "${DEPLOY_DIR}/backend/${APP_NAME}" ./cmd/api/
+CGO_ENABLED=1 go build -buildvcs=false -o "${DEPLOY_DIR}/backend/${APP_NAME}" ./cmd/api/
 
 mkdir -p "${DEPLOY_DIR}"/{backend,data}
 cp -r migrations "${DEPLOY_DIR}/backend/"

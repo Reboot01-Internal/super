@@ -4,7 +4,7 @@ import placeholder from "../placeholder.png";
 
 const AUTH_URL = "https://learn.reboot01.com/api/auth/signin";
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
-const LOCAL_API = "http://localhost:8080";
+const LOCAL_API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 function normalizeToken(raw: string) {
   return raw.trim().replace(/^"|"$/g, "");
@@ -349,19 +349,3 @@ export default function LoginPage() {
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/25 bg-white/15 px-3 py-2 backdrop-blur-sm">
-      <div className="text-[10px] font-black uppercase tracking-[0.08em] text-white/80">{label}</div>
-      <div className="mt-0.5 text-[13px] font-black text-white">{value}</div>
-    </div>
-  );
-}
-
-function MiniChip({ text }: { text: string }) {
-  return (
-    <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
-      {text}
-    </span>
-  );
-}
