@@ -386,6 +386,12 @@ export default function BoardMembersPage() {
       right={
         <div className="flex items-center gap-2">
           <button
+            className="h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-900 transition hover:border-violet-200 hover:bg-violet-50"
+            onClick={() => nav("/admin/boards")}
+          >
+            Back
+          </button>
+          <button
             className="h-10 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 transition hover:border-violet-200 hover:bg-violet-50"
             onClick={() => nav(`/admin/boards/${boardID}`)}
           >
