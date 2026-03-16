@@ -244,7 +244,7 @@ async function loadRebootGender(login: string, jwt: string): Promise<string> {
 export default function ProfilePage() {
   const nav = useNavigate();
   const params = useParams<{ userId?: string }>();
-  const { role, login: ownLogin, jwt, isAdmin, isSupervisor } = useAuth();
+  const { role, login: ownLogin, jwt } = useAuth();
   const targetUserID = Number(params.userId || 0);
   const isTargetUserView =
     Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
