@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"taskflow/internal/db"
 	"taskflow/internal/utils"
@@ -13,7 +14,18 @@ type markNotificationReq struct {
 
 func (a *API) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	actor := actorID(r, a.conn)
-	items, err := db.ListNotificationsByUser(a.conn, actor)
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	showAll := role == "admin" && strings.TrimSpace(strings.ToLower(r.URL.Query().Get("scope"))) == "all"
+
+	var (
+		items any
+		err   error
+	)
+	if showAll {
+		items, err = db.ListAllNotifications(a.conn)
+	} else {
+		items, err = db.ListNotificationsByUser(a.conn, actor)
+	}
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "db error")
 		return

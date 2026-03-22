@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"taskflow/internal/db"
+	"taskflow/internal/models"
 	"taskflow/internal/utils"
 )
 
@@ -29,6 +31,41 @@ func (a *API) notifyMeetingParticipants(meetingID, actorID int64, kind, title, m
 			"/calendar",
 		)
 	}
+}
+
+func (a *API) notifyAdmins(kind, title, body string) {
+	admins, err := db.SearchUsersByRole(a.conn, "admin", "")
+	if err != nil {
+		return
+	}
+	for _, admin := range admins {
+		_ = db.CreateNotification(a.conn, admin.ID, kind, title, body, "/notifications")
+	}
+}
+
+func meetingAdminBody(meeting models.Meeting, detail string) string {
+	body := fmt.Sprintf("%s in %s for %s.", strings.TrimSpace(meeting.Title), strings.TrimSpace(meeting.BoardName), formatTimeRangeForNotification(meeting.StartsAt, meeting.EndsAt))
+	if strings.TrimSpace(meeting.Location) != "" {
+		body += " Location: " + strings.TrimSpace(meeting.Location) + "."
+	}
+	if strings.TrimSpace(detail) != "" {
+		body += " " + strings.TrimSpace(detail)
+	}
+	return body
+}
+
+func formatTimeRangeForNotification(startISO, endISO string) string {
+	start := strings.TrimSpace(startISO)
+	end := strings.TrimSpace(endISO)
+	startAt, err := time.Parse(time.RFC3339, start)
+	if err != nil {
+		return start
+	}
+	endAt, err := time.Parse(time.RFC3339, end)
+	if err != nil {
+		return startAt.Local().Format("02 Jan 2006 3:04 PM")
+	}
+	return fmt.Sprintf("%s - %s", startAt.Local().Format("02 Jan 2006 3:04 PM"), endAt.Local().Format("3:04 PM"))
 }
 
 type createMeetingReq struct {
@@ -259,6 +296,7 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 	_ = db.SyncMeetingParticipants(a.conn, meetingID, req.BoardID)
 	meeting, _ := db.GetMeetingByID(a.conn, meetingID)
 	a.notifyMeetingParticipants(meetingID, actor, "meeting_created", "New meeting booked", meeting.Title, "A new meeting was added to your board calendar.")
+	a.notifyAdmins("meeting_created", "New meeting booked", meetingAdminBody(meeting, ""))
 
 	discordNotified := a.notifyMeetingBooked(meetingID, actor)
 	roomBookingNotified := a.notifyMeetingRoomBookingIfDue(meetingID)
@@ -312,6 +350,7 @@ func (a *API) AdminUpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	_ = db.SyncMeetingParticipants(a.conn, req.MeetingID, req.BoardID)
 	updatedMeeting, _ := db.GetMeetingByID(a.conn, req.MeetingID)
 	a.notifyMeetingParticipants(req.MeetingID, actor, "meeting_updated", "Meeting rescheduled", updatedMeeting.Title, "A meeting time, room, or agenda was updated.")
+	a.notifyAdmins("meeting_updated", "Meeting rescheduled", meetingAdminBody(updatedMeeting, "The schedule or room was changed."))
 	_ = a.notifyMeetingChanged(updatedMeeting, "updated")
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
@@ -368,6 +407,7 @@ func (a *API) AdminUpdateMeetingStatus(w http.ResponseWriter, r *http.Request) {
 		body = "A meeting was canceled."
 	}
 	a.notifyMeetingParticipants(req.MeetingID, actor, "meeting_status", title, updatedMeeting.Title, body)
+	a.notifyAdmins("meeting_status", title, meetingAdminBody(updatedMeeting, body))
 	verb := "updated"
 	if status == "completed" {
 		verb = "completed"

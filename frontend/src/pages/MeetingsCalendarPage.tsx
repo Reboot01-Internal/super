@@ -105,10 +105,14 @@ function BinIcon({ size = 14 }: { size?: number }) {
 }
 
 export default function MeetingsCalendarPage() {
-  const { role, isAdmin, isSupervisor, email, login } = useAuth();
-  const canCreate = isAdmin || isSupervisor;
-  const canManage = isAdmin || isSupervisor;
-  const actorRole = role;
+  const { role, email, login } = useAuth();
+  const [resolvedRole, setResolvedRole] = useState<string>(role);
+  const effectiveRole = resolvedRole || role;
+  const isEffectiveAdmin = effectiveRole === "admin";
+  const isEffectiveSupervisor = effectiveRole === "supervisor";
+  const canCreate = isEffectiveAdmin || isEffectiveSupervisor;
+  const canManage = isEffectiveAdmin || isEffectiveSupervisor;
+  const actorRole = effectiveRole;
   const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [meetings, setMeetings] = useState<MeetingRow[]>([]);
@@ -145,21 +149,25 @@ export default function MeetingsCalendarPage() {
     setLoading(true);
     setError("");
     try {
-      const [meetingsRes, boardsRes] = await Promise.all([
+      const [meetingsRes, boardsRes, profileRes] = await Promise.all([
         apiFetch("/admin/meetings"),
         apiFetch("/admin/all-boards"),
+        apiFetch("/admin/profile/summary"),
       ]);
       const nextMeetings = Array.isArray(meetingsRes) ? meetingsRes : [];
       setMeetings(nextMeetings);
       setBoards(Array.isArray(boardsRes) ? boardsRes : []);
+      const nextRole = String((profileRes as any)?.user?.role || role).trim().toLowerCase();
+      setResolvedRole(nextRole || role);
     } catch (e: any) {
       setError(e?.message || "Failed to load meetings");
       setMeetings([]);
       setBoards([]);
+      setResolvedRole(role);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [role]);
 
   const loadParticipants = useCallback(async (meetingID: number) => {
     setParticipantsLoading((prev) => ({ ...prev, [meetingID]: true }));
@@ -394,9 +402,9 @@ export default function MeetingsCalendarPage() {
     <>
       {confirmDialog}
       <AdminLayout
-        active={isAdmin ? "meetings" : "boards"}
-        title={titleForRole(role)}
-        subtitle={subtitleForRole(role)}
+        active={isEffectiveAdmin ? "meetings" : "boards"}
+        title={titleForRole(effectiveRole)}
+        subtitle={subtitleForRole(effectiveRole)}
         right={
           canCreate ? (
             <button
@@ -455,8 +463,17 @@ export default function MeetingsCalendarPage() {
             ))}
           </select>
           <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[13px] font-semibold text-slate-600">
-            {isSupervisor ? "You can reschedule, cancel, and mark attendance for your boards." : isAdmin ? "Admin sees all meeting attendance and outcomes." : "Update your RSVP so supervisors can plan around attendance."}
+            {isEffectiveSupervisor ? "You can schedule, reschedule, cancel, and manage attendance for your boards." : isEffectiveAdmin ? "Admin sees all meeting attendance and outcomes." : "Update your RSVP so supervisors can plan around attendance."}
           </div>
+          {/* {canCreate ? (
+            <button
+              type="button"
+              onClick={startCreateMeeting}
+              className="h-11 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-4 text-[13px] font-black text-white shadow-[0_14px_34px_rgba(245,158,11,0.24)] transition hover:-translate-y-[1px]"
+            >
+              Book Meeting
+            </button>
+          ) : null} */}
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">

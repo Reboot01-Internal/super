@@ -164,6 +164,8 @@ type MeetingParticipant struct {
 type AppNotification struct {
 	ID        int64  `json:"id"`
 	UserID    int64  `json:"user_id"`
+	UserName  string `json:"user_name"`
+	UserLogin string `json:"user_login"`
 	Kind      string `json:"kind"`
 	Title     string `json:"title"`
 	Body      string `json:"body"`

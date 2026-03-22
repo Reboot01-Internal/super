@@ -17,10 +17,11 @@ func CreateNotification(conn DBTX, userID int64, kind, title, body, link string)
 
 func ListNotificationsByUser(conn DBTX, userID int64) ([]models.AppNotification, error) {
 	rows, err := conn.Query(`
-		SELECT id, user_id, kind, title, body, link, is_read, created_at
-		FROM app_notifications
-		WHERE user_id = ?
-		ORDER BY datetime(created_at) DESC, id DESC
+		SELECT n.id, n.user_id, IFNULL(u.full_name, ''), IFNULL(u.nickname, ''), n.kind, n.title, n.body, n.link, n.is_read, n.created_at
+		FROM app_notifications n
+		LEFT JOIN users u ON u.id = n.user_id
+		WHERE n.user_id = ?
+		ORDER BY datetime(n.created_at) DESC, n.id DESC
 		LIMIT 100
 	`, userID)
 	if err != nil {
@@ -32,7 +33,33 @@ func ListNotificationsByUser(conn DBTX, userID int64) ([]models.AppNotification,
 	for rows.Next() {
 		var item models.AppNotification
 		var readInt int
-		if err := rows.Scan(&item.ID, &item.UserID, &item.Kind, &item.Title, &item.Body, &item.Link, &readInt, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.UserID, &item.UserName, &item.UserLogin, &item.Kind, &item.Title, &item.Body, &item.Link, &readInt, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		item.IsRead = readInt == 1
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func ListAllNotifications(conn DBTX) ([]models.AppNotification, error) {
+	rows, err := conn.Query(`
+		SELECT n.id, n.user_id, IFNULL(u.full_name, ''), IFNULL(u.nickname, ''), n.kind, n.title, n.body, n.link, n.is_read, n.created_at
+		FROM app_notifications n
+		LEFT JOIN users u ON u.id = n.user_id
+		ORDER BY datetime(n.created_at) DESC, n.id DESC
+		LIMIT 200
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []models.AppNotification{}
+	for rows.Next() {
+		var item models.AppNotification
+		var readInt int
+		if err := rows.Scan(&item.ID, &item.UserID, &item.UserName, &item.UserLogin, &item.Kind, &item.Title, &item.Body, &item.Link, &readInt, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		item.IsRead = readInt == 1

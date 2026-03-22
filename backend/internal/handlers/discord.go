@@ -455,6 +455,13 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 		log.Printf("meeting room notify mark failed for meeting %d: %v", meeting.ID, err)
 	}
 
+	title := "Room booking notice sent"
+	detail := fmt.Sprintf("A room booking notice was sent for %s.", strings.TrimSpace(meeting.Location))
+	if daysBefore == 1 {
+		detail = fmt.Sprintf("A tomorrow room booking notice was sent for %s.", strings.TrimSpace(meeting.Location))
+	}
+	a.notifyAdmins("meeting_room_notice", title, meetingAdminBody(meeting, detail))
+
 	return true
 }
 
@@ -539,6 +546,23 @@ func (a *API) runMeetingReminderSweep(location *time.Location) {
 
 		if reminderType == "" {
 			continue
+		}
+
+		adminDetail := body
+		admins, err := db.SearchUsersByRole(a.conn, "admin", "")
+		if err == nil {
+			for _, admin := range admins {
+				sent, err := db.HasMeetingReminderEvent(a.conn, meeting.ID, admin.ID, "admin_"+reminderType, meeting.StartsAt)
+				if err != nil || sent {
+					continue
+				}
+				if err := db.CreateNotification(a.conn, admin.ID, "meeting_reminder", title, meetingAdminBody(meeting, adminDetail), "/notifications"); err != nil {
+					continue
+				}
+				if err := db.MarkMeetingReminderEvent(a.conn, meeting.ID, admin.ID, "admin_"+reminderType, meeting.StartsAt); err != nil {
+					log.Printf("admin reminder mark failed for meeting %d user %d: %v", meeting.ID, admin.ID, err)
+				}
+			}
 		}
 
 		participants, err := db.ListMeetingParticipants(a.conn, meeting.ID)
