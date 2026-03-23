@@ -458,7 +458,7 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 	if daysBefore == 1 {
 		detail = fmt.Sprintf("A tomorrow room booking notice was sent for %s.", strings.TrimSpace(meeting.Location))
 	}
-	a.notifyAdmins("meeting_room_notice", title, meetingAdminBody(meeting, detail))
+	a.notifyAdmins("meeting_room_notice", title, meetingAdminBody(meeting, "", detail))
 
 	return true
 }
@@ -554,7 +554,7 @@ func (a *API) runMeetingReminderSweep(location *time.Location) {
 				if err != nil || sent {
 					continue
 				}
-				if err := db.CreateNotification(a.conn, admin.ID, "meeting_reminder", title, meetingAdminBody(meeting, adminDetail), "/notifications"); err != nil {
+				if err := db.CreateNotification(a.conn, admin.ID, "meeting_reminder", title, meetingAdminBody(meeting, "", adminDetail), "/notifications"); err != nil {
 					continue
 				}
 				if err := db.MarkMeetingReminderEvent(a.conn, meeting.ID, admin.ID, "admin_"+reminderType, meeting.StartsAt); err != nil {

@@ -43,10 +43,27 @@ func (a *API) notifyAdmins(kind, title, body string) {
 	}
 }
 
-func meetingAdminBody(meeting models.Meeting, detail string) string {
+func (a *API) adminActorLabel(actorID int64) string {
+	if actorID <= 0 {
+		return "Someone"
+	}
+	if name, err := db.GetUserDisplayName(a.conn, actorID); err == nil && strings.TrimSpace(name) != "" {
+		return strings.TrimSpace(name)
+	}
+	fullName, _, _, _, err := db.GetUserBasic(a.conn, actorID)
+	if err == nil && strings.TrimSpace(fullName) != "" {
+		return strings.TrimSpace(fullName)
+	}
+	return "Someone"
+}
+
+func meetingAdminBody(meeting models.Meeting, actorLabel, detail string) string {
 	body := fmt.Sprintf("%s in %s for %s.", strings.TrimSpace(meeting.Title), strings.TrimSpace(meeting.BoardName), formatTimeRangeForNotification(meeting.StartsAt, meeting.EndsAt))
 	if strings.TrimSpace(meeting.Location) != "" {
 		body += " Location: " + strings.TrimSpace(meeting.Location) + "."
+	}
+	if strings.TrimSpace(actorLabel) != "" {
+		body += " By: " + strings.TrimSpace(actorLabel) + "."
 	}
 	if strings.TrimSpace(detail) != "" {
 		body += " " + strings.TrimSpace(detail)
@@ -296,7 +313,7 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 	_ = db.SyncMeetingParticipants(a.conn, meetingID, req.BoardID)
 	meeting, _ := db.GetMeetingByID(a.conn, meetingID)
 	a.notifyMeetingParticipants(meetingID, actor, "meeting_created", "New meeting booked", meeting.Title, "A new meeting was added to your board calendar.")
-	a.notifyAdmins("meeting_created", "New meeting booked", meetingAdminBody(meeting, ""))
+	a.notifyAdmins("meeting_created", "New meeting booked", meetingAdminBody(meeting, a.adminActorLabel(actor), "Meeting was booked."))
 
 	discordNotified := a.notifyMeetingBooked(meetingID, actor)
 	roomBookingNotified := a.notifyMeetingRoomBookingIfDue(meetingID)
@@ -350,7 +367,7 @@ func (a *API) AdminUpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	_ = db.SyncMeetingParticipants(a.conn, req.MeetingID, req.BoardID)
 	updatedMeeting, _ := db.GetMeetingByID(a.conn, req.MeetingID)
 	a.notifyMeetingParticipants(req.MeetingID, actor, "meeting_updated", "Meeting rescheduled", updatedMeeting.Title, "A meeting time, room, or agenda was updated.")
-	a.notifyAdmins("meeting_updated", "Meeting rescheduled", meetingAdminBody(updatedMeeting, "The schedule or room was changed."))
+	a.notifyAdmins("meeting_updated", "Meeting rescheduled", meetingAdminBody(updatedMeeting, a.adminActorLabel(actor), "The schedule, room, or agenda was changed."))
 	_ = a.notifyMeetingChanged(updatedMeeting, "updated")
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
@@ -407,7 +424,11 @@ func (a *API) AdminUpdateMeetingStatus(w http.ResponseWriter, r *http.Request) {
 		body = "A meeting was canceled."
 	}
 	a.notifyMeetingParticipants(req.MeetingID, actor, "meeting_status", title, updatedMeeting.Title, body)
-	a.notifyAdmins("meeting_status", title, meetingAdminBody(updatedMeeting, body))
+	adminDetail := body
+	if strings.TrimSpace(req.OutcomeNotes) != "" {
+		adminDetail += " Notes: " + strings.TrimSpace(req.OutcomeNotes)
+	}
+	a.notifyAdmins("meeting_status", title, meetingAdminBody(updatedMeeting, a.adminActorLabel(actor), adminDetail))
 	verb := "updated"
 	if status == "completed" {
 		verb = "completed"
@@ -466,6 +487,17 @@ func (a *API) AdminUpdateMeetingParticipant(w http.ResponseWriter, r *http.Reque
 		writeErr(w, http.StatusInternalServerError, "failed to update meeting participant")
 		return
 	}
+
+	participantName := "Participant"
+	if name, err := db.GetUserDisplayName(a.conn, req.UserID); err == nil && strings.TrimSpace(name) != "" {
+		participantName = strings.TrimSpace(name)
+	}
+	detail := fmt.Sprintf("%s updated RSVP to %s", participantName, rsvp)
+	if role != "student" {
+		detail += fmt.Sprintf(" and attendance to %s", attendance)
+	}
+	detail += "."
+	a.notifyAdmins("meeting_participant", "Meeting participant updated", meetingAdminBody(meeting, a.adminActorLabel(actor), detail))
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

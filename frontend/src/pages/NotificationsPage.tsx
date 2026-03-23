@@ -33,10 +33,10 @@ function kindLabel(kind: string) {
 function kindTone(kind: string) {
   if (kind.includes("reminder")) {
     return {
-      dot: "bg-amber-500",
-      badge: "border-amber-200 bg-amber-50 text-amber-700",
-      icon: "border-amber-200 bg-amber-50 text-amber-700",
-      row: "hover:border-amber-200/80 hover:bg-amber-50/30",
+      dot: "bg-slate-400",
+      badge: "border-slate-200 bg-slate-50 text-slate-600",
+      icon: "border-slate-200 bg-slate-50 text-slate-600",
+      row: "hover:border-slate-200 hover:bg-slate-50/80",
     };
   }
   if (kind.includes("status")) {
@@ -60,15 +60,12 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [scope, setScope] = useState<"mine" | "all">("mine");
-  const [feedFilter, setFeedFilter] = useState<"all" | "unread">("all");
 
   async function load() {
     setLoading(true);
     setError("");
     try {
-      const path = isAdmin && scope === "all" ? "/admin/notifications?scope=all" : "/admin/notifications";
-      const res = await apiFetch(path);
+      const res = await apiFetch("/admin/notifications");
       setItems(Array.isArray(res) ? res : []);
     } catch (e: any) {
       setError(e?.message || "Failed to load notifications");
@@ -80,31 +77,12 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     load();
-  }, [scope, isAdmin]);
+  }, []);
 
   const unreadCount = useMemo(() => items.filter((item) => !item.is_read).length, [items]);
   const readCount = items.length - unreadCount;
   const latestItem = items[0] || null;
-  const visibleItems = useMemo(
-    () => (feedFilter === "unread" ? items.filter((item) => !item.is_read) : items),
-    [feedFilter, items]
-  );
-
-  async function markRead(id: number) {
-    if (isAdmin && scope === "all") return;
-    try {
-      await apiFetch("/admin/notifications/read", {
-        method: "POST",
-        body: JSON.stringify({ notification_id: id }),
-      });
-      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, is_read: true } : item)));
-    } catch (e: any) {
-      setError(e?.message || "Failed to mark notification");
-    }
-  }
-
   async function markAllRead() {
-    if (isAdmin && scope === "all") return;
     try {
       await apiFetch("/admin/notifications/read-all", { method: "POST" });
       setItems((prev) => prev.map((item) => ({ ...item, is_read: true })));
@@ -112,6 +90,12 @@ export default function NotificationsPage() {
       setError(e?.message || "Failed to mark all notifications");
     }
   }
+
+  useEffect(() => {
+    if (loading) return;
+    if (!items.some((item) => !item.is_read)) return;
+    void markAllRead();
+  }, [loading, items]);
 
   return (
     <AdminLayout
@@ -130,61 +114,16 @@ export default function NotificationsPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
-                {scope === "all" ? "Admin feed" : "Personal inbox"}
+                {isAdmin ? "Admin feed" : "Personal inbox"}
               </div>
               <div className="mt-1 text-[16px] font-black tracking-[-0.02em] text-slate-900">
-                {scope === "all" ? "All team notifications" : "Your notifications"}
+                {isAdmin ? "Important meeting activity" : "Your notifications"}
               </div>
               <div className="mt-1 text-[12px] font-semibold text-slate-500">
-                {scope === "all"
-                  ? "Read-only view of student and supervisor updates."
+                {isAdmin
+                  ? "Bookings, reschedules, attendance changes, room notices, reminders, and outcome notes."
                   : "Reminders, reschedules, and meeting updates for your boards."}
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {isAdmin ? (
-                <div className="inline-flex rounded-[14px] border border-slate-200 bg-slate-50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setScope("mine")}
-                    className={`rounded-[10px] px-3 py-1.5 text-[12px] font-black transition ${scope === "mine" ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08)]" : "text-slate-500 hover:text-slate-800"}`}
-                  >
-                    Mine
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScope("all")}
-                    className={`rounded-[10px] px-3 py-1.5 text-[12px] font-black transition ${scope === "all" ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08)]" : "text-slate-500 hover:text-slate-800"}`}
-                  >
-                    All
-                  </button>
-                </div>
-              ) : null}
-              <div className="inline-flex rounded-[14px] border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setFeedFilter("all")}
-                  className={`rounded-[10px] px-3 py-1.5 text-[12px] font-black transition ${feedFilter === "all" ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08)]" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFeedFilter("unread")}
-                  className={`rounded-[10px] px-3 py-1.5 text-[12px] font-black transition ${feedFilter === "unread" ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08)]" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  Unread
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={markAllRead}
-                disabled={isAdmin && scope === "all"}
-                className="h-9 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[12px] font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Mark all read
-              </button>
             </div>
           </div>
 
@@ -203,11 +142,9 @@ export default function NotificationsPage() {
 
         <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-            <div className="text-[13px] font-black text-slate-900">
-              {feedFilter === "unread" ? "Unread notifications" : "Recent notifications"}
-            </div>
+            <div className="text-[13px] font-black text-slate-900">Recent notifications</div>
             <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black text-slate-600">
-              {visibleItems.length} items
+              {items.length} items
             </div>
           </div>
 
@@ -217,7 +154,7 @@ export default function NotificationsPage() {
                 <div key={idx} className="h-[92px] animate-pulse rounded-[18px] border border-slate-200 bg-[linear-gradient(90deg,#f8fafc,#eef2f7,#f8fafc)]" />
               ))}
             </div>
-          ) : visibleItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="grid min-h-[340px] place-items-center px-4 py-6">
               <div className="max-w-[420px] text-center">
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.14),_transparent_55%),#ffffff] shadow-[0_18px_38px_rgba(15,23,42,0.08)]">
@@ -227,24 +164,22 @@ export default function NotificationsPage() {
                   </svg>
                 </div>
                 <div className="mt-5 text-[20px] font-black text-slate-900">
-                  {feedFilter === "unread" ? "No unread notifications" : "No notifications yet"}
+                  No notifications yet
                 </div>
                 <div className="mt-2 text-[13px] font-semibold leading-6 text-slate-500">
-                  {isAdmin && scope === "all"
-                    ? "When supervisors and students receive meeting reminders or schedule changes, they will appear here."
+                  {isAdmin
+                    ? "Important meeting activity will show here as supervisors and students use the system."
                     : "Meeting reminders, reschedules, and status updates will show up here as your boards become active."}
                 </div>
               </div>
             </div>
           ) : (
             <div className="px-3 py-2">
-              {visibleItems.map((item) => (
+              {items.map((item) => (
                 <NotificationCard
                   key={item.id}
                   item={item}
-                  showRecipient={isAdmin && scope === "all"}
-                  canMarkRead={!(isAdmin && scope === "all")}
-                  onMarkRead={markRead}
+                  showRecipient={false}
                 />
               ))}
             </div>
@@ -258,13 +193,9 @@ export default function NotificationsPage() {
 function NotificationCard({
   item,
   showRecipient,
-  canMarkRead,
-  onMarkRead,
 }: {
   item: NotificationRow;
   showRecipient: boolean;
-  canMarkRead: boolean;
-  onMarkRead: (id: number) => void;
 }) {
   const tone = kindTone(item.kind);
 
@@ -273,7 +204,7 @@ function NotificationCard({
       className={`group relative overflow-hidden rounded-[18px] border px-3.5 py-3 transition ${tone.row} ${
         item.is_read
           ? "border-transparent bg-transparent"
-          : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#fffaf3)] shadow-[0_10px_24px_rgba(245,158,11,0.05)]"
+          : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]"
       }`}
     >
       <div className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full ${tone.dot}`} />
@@ -305,15 +236,6 @@ function NotificationCard({
             <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${tone.badge}`}>
               {kindLabel(item.kind)}
             </span>
-            {!item.is_read && canMarkRead ? (
-              <button
-                type="button"
-                onClick={() => onMarkRead(item.id)}
-                className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Mark read
-              </button>
-            ) : null}
           </div>
         </div>
 
