@@ -160,25 +160,23 @@ func (a *API) notifyCardAssigned(cardID, userID, actorID int64) bool {
 		return false
 	}
 
-	assigneeName, _, _, _, err := db.GetUserBasic(a.conn, userID)
-	if err != nil {
-		log.Printf("discord assignment notify skipped: assignee query failed for user %d: %v", userID, err)
-		return false
-	}
-
 	actorName := "Someone"
+	actorMention := actorName
 	if actorID > 0 {
-		if fullName, _, _, _, err := db.GetUserBasic(a.conn, actorID); err == nil && strings.TrimSpace(fullName) != "" {
-			actorName = fullName
+		if displayName, err := db.GetUserDisplayName(a.conn, actorID); err == nil && strings.TrimSpace(displayName) != "" {
+			actorName = displayName
+			actorMention = displayName
 		}
+		actorMention = a.resolveDiscordMention(actorID, actorName)
 	}
 
-	assigneeMention := assigneeName
-	if discordUserID, err := db.GetUserDiscordID(a.conn, userID); err == nil && strings.TrimSpace(discordUserID) != "" {
-		assigneeMention = "<@" + strings.TrimSpace(discordUserID) + ">"
+	assigneeName := "Someone"
+	if displayName, err := db.GetUserDisplayName(a.conn, userID); err == nil && strings.TrimSpace(displayName) != "" {
+		assigneeName = displayName
 	}
+	assigneeMention := a.resolveDiscordMention(userID, assigneeName)
 
-	message := fmt.Sprintf("%s assigned %s to **%s** in **%s**.", actorName, assigneeMention, card.Title, board.Name)
+	message := fmt.Sprintf("%s assigned %s to **%s** in **%s**.", actorMention, assigneeMention, card.Title, board.Name)
 	if strings.TrimSpace(card.DueDate) != "" {
 		message += fmt.Sprintf(" Deadline: `%s`.", strings.TrimSpace(card.DueDate))
 	}
