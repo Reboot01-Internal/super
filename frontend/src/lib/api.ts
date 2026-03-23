@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export function clearAuth() {
   localStorage.removeItem("jwt");
@@ -11,7 +11,7 @@ export function clearAuth() {
 
 export const clearToken = clearAuth;
 
-function buildHeaders(options: RequestInit): Record<string, string> {
+export function authHeaders(options: RequestInit = {}): Record<string, string> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -35,7 +35,7 @@ function buildHeaders(options: RequestInit): Record<string, string> {
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
-  const headers = buildHeaders(options);
+  const headers = authHeaders(options);
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

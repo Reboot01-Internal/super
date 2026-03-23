@@ -157,6 +157,7 @@ func main() {
 
 		ar.Get("/all-boards", api.AdminAllBoards)
 		ar.Get("/meetings", api.AdminListMeetings)
+		ar.Get("/meetings/export", api.ExportMeetingsCalendar)
 		ar.Post("/meetings", api.AdminCreateMeeting)
 		ar.Post("/meetings/update", api.AdminUpdateMeeting)
 		ar.Post("/meetings/status", api.AdminUpdateMeetingStatus)

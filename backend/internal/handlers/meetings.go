@@ -285,6 +285,67 @@ func parseInt64Query(r *http.Request, key string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get(key)), 10, 64)
 }
 
+func escapeICSField(v string) string {
+	v = strings.ReplaceAll(v, `\`, `\\`)
+	v = strings.ReplaceAll(v, "\n", `\n`)
+	v = strings.ReplaceAll(v, ",", `\,`)
+	v = strings.ReplaceAll(v, ";", `\;`)
+	return v
+}
+
+func icsDateTime(raw string) string {
+	t, err := time.Parse(time.RFC3339, strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	return t.UTC().Format("20060102T150405Z")
+}
+
+func buildMeetingsICS(meetings []models.Meeting) string {
+	now := time.Now().UTC().Format("20060102T150405Z")
+	var b strings.Builder
+	b.WriteString("BEGIN:VCALENDAR\r\n")
+	b.WriteString("VERSION:2.0\r\n")
+	b.WriteString("PRODID:-//TaskFlow//Meetings//EN\r\n")
+	b.WriteString("CALSCALE:GREGORIAN\r\n")
+	b.WriteString("METHOD:PUBLISH\r\n")
+	for _, meeting := range meetings {
+		start := icsDateTime(meeting.StartsAt)
+		end := icsDateTime(meeting.EndsAt)
+		if start == "" || end == "" {
+			continue
+		}
+		descParts := []string{}
+		if strings.TrimSpace(meeting.Notes) != "" {
+			descParts = append(descParts, "Agenda: "+strings.TrimSpace(meeting.Notes))
+		}
+		if strings.TrimSpace(meeting.OutcomeNotes) != "" {
+			descParts = append(descParts, "Outcome notes: "+strings.TrimSpace(meeting.OutcomeNotes))
+		}
+		descParts = append(descParts, "Board: "+strings.TrimSpace(meeting.BoardName))
+		descParts = append(descParts, "Status: "+strings.TrimSpace(meeting.Status))
+
+		b.WriteString("BEGIN:VEVENT\r\n")
+		b.WriteString(fmt.Sprintf("UID:meeting-%d@taskflow\r\n", meeting.ID))
+		b.WriteString("DTSTAMP:" + now + "\r\n")
+		b.WriteString("DTSTART:" + start + "\r\n")
+		b.WriteString("DTEND:" + end + "\r\n")
+		b.WriteString("SUMMARY:" + escapeICSField(meeting.Title) + "\r\n")
+		if strings.TrimSpace(meeting.Location) != "" {
+			b.WriteString("LOCATION:" + escapeICSField(meeting.Location) + "\r\n")
+		}
+		b.WriteString("DESCRIPTION:" + escapeICSField(strings.Join(descParts, "\n")) + "\r\n")
+		if meeting.Status == "canceled" {
+			b.WriteString("STATUS:CANCELLED\r\n")
+		} else {
+			b.WriteString("STATUS:CONFIRMED\r\n")
+		}
+		b.WriteString("END:VEVENT\r\n")
+	}
+	b.WriteString("END:VCALENDAR\r\n")
+	return b.String()
+}
+
 func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 	role := normalizeRole(r.Header.Get("X-User-Role"))
 	if role != "admin" && role != "supervisor" {
@@ -323,6 +384,43 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 		"discord_notified":      discordNotified,
 		"room_booking_notified": roomBookingNotified,
 	})
+}
+
+func (a *API) ExportMeetingsCalendar(w http.ResponseWriter, r *http.Request) {
+	role := normalizeRole(r.Header.Get("X-User-Role"))
+	if role != "admin" && role != "supervisor" && role != "student" {
+		writeErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	meetings, err := db.ListMeetings(a.conn, role, actorID(r, a.conn))
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+
+	boardID, _ := parseInt64Query(r, "board_id")
+	if boardID > 0 {
+		filtered := make([]models.Meeting, 0, len(meetings))
+		for _, meeting := range meetings {
+			if meeting.BoardID == boardID {
+				filtered = append(filtered, meeting)
+			}
+		}
+		meetings = filtered
+	}
+
+	filename := "taskflow-meetings.ics"
+	if role == "student" {
+		filename = "taskflow-my-calendar.ics"
+	} else if role == "supervisor" {
+		filename = "taskflow-my-meetings.ics"
+	}
+
+	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(buildMeetingsICS(meetings)))
 }
 
 func (a *API) AdminUpdateMeeting(w http.ResponseWriter, r *http.Request) {

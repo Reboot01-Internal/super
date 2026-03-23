@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { apiFetch } from "../lib/api";
+import { API_URL, apiFetch, authHeaders } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
 
@@ -133,6 +133,7 @@ export default function MeetingsCalendarPage() {
   const [editingMeetingID, setEditingMeetingID] = useState<number | null>(null);
   const [savingParticipantKey, setSavingParticipantKey] = useState("");
   const [savingOutcome, setSavingOutcome] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     board_id: "",
@@ -398,6 +399,40 @@ export default function MeetingsCalendarPage() {
     }
   }
 
+  async function exportCalendar() {
+    setExporting(true);
+    setError("");
+    try {
+      const query = selectedBoardFilter !== "all" ? `?board_id=${encodeURIComponent(selectedBoardFilter)}` : "";
+      const res = await fetch(`${API_URL}/admin/meetings/export${query}`, {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to export calendar");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download =
+        effectiveRole === "student"
+          ? "taskflow-my-calendar.ics"
+          : effectiveRole === "supervisor"
+            ? "taskflow-my-meetings.ics"
+            : "taskflow-meetings.ics";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message || "Failed to export calendar");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
       {confirmDialog}
@@ -465,6 +500,14 @@ export default function MeetingsCalendarPage() {
           <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[13px] font-semibold text-slate-600">
             {isEffectiveSupervisor ? "You can schedule, reschedule, cancel, and manage attendance for your boards." : isEffectiveAdmin ? "Admin sees all meeting attendance and outcomes." : "Update your RSVP so supervisors can plan around attendance."}
           </div>
+          <button
+            type="button"
+            onClick={exportCalendar}
+            disabled={exporting}
+            className="h-11 rounded-[14px] border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {exporting ? "Exporting..." : "Export Calendar"}
+          </button>
           {/* {canCreate ? (
             <button
               type="button"
