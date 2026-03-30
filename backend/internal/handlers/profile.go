@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"taskflow/internal/db"
 )
 
 type profileUser struct {
@@ -152,15 +154,26 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	out.User.Role = strings.ToLower(strings.TrimSpace(out.User.Role))
 
-	switch out.User.Role {
-	case "supervisor":
+	hasSupervisorRole, err := db.UserHasRole(a.conn, uid, "supervisor")
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to load user roles")
+		return
+	}
+	hasStudentRole, err := db.UserHasRole(a.conn, uid, "student")
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to load user roles")
+		return
+	}
+
+	if hasSupervisorRole {
 		section, err := a.profileForSupervisor(uid)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, "failed to load supervisor profile")
 			return
 		}
 		out.Supervisor = section
-	case "student":
+	}
+	if hasStudentRole {
 		section, err := a.profileForStudent(uid)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, "failed to load student profile")

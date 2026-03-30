@@ -490,7 +490,7 @@ export default function ProfilePage() {
               </div>
             </section>
 
-            {localProfile.user.role === "supervisor" ? (
+            {localProfile.supervisor ? (
               <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] lg:min-h-[450px]">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="text-[18px] font-black text-slate-900">Assigned Students</div>
