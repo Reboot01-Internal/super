@@ -603,7 +603,7 @@ export default function MeetingsCalendarPage() {
                         </div>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           <MetaPill label="Time" value={formatTimeRange(meeting.starts_at, meeting.ends_at)} />
-                          <MetaPill label="Location" value={meeting.location} />
+                          <MetaPill label="Location" value={meeting.location || "No location"} />
                         </div>
                       </button>
                     ))}
@@ -629,7 +629,10 @@ export default function MeetingsCalendarPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-[20px] font-black text-slate-900">{selectedMeeting.title}</div>
-                    <div className="mt-1 text-[12px] font-semibold text-slate-500">{selectedMeeting.board_name} • {selectedMeeting.location}</div>
+                    <div className="mt-1 text-[12px] font-semibold text-slate-500">
+                      {selectedMeeting.board_name}
+                      {selectedMeeting.location ? ` • ${selectedMeeting.location}` : ""}
+                    </div>
                   </div>
                   {canManage ? (
                     <div className="flex items-center gap-2">
@@ -753,8 +756,8 @@ export default function MeetingsCalendarPage() {
                   <Field label="Date">
                     <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
                   </Field>
-                  <Field label="Location">
-                    <input required value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" placeholder="Quest / Sandbox / Pixel" />
+                  <Field label="Location (optional)">
+                    <input value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" placeholder="Quest / Sandbox / Pixel" />
                   </Field>
                   <Field label="Start time">
                     <input required type="time" value={form.start_time} onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />

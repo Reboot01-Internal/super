@@ -200,8 +200,8 @@ func (a *API) validateMeetingWrite(role string, actor int64, req createMeetingRe
 	req.Title = strings.TrimSpace(req.Title)
 	req.Location = strings.TrimSpace(req.Location)
 	req.Notes = strings.TrimSpace(req.Notes)
-	if req.BoardID == 0 || req.Title == "" || req.Location == "" || req.StartsAt == "" || req.EndsAt == "" {
-		return "", "", 0, errors.New("board_id, title, location, starts_at and ends_at required")
+	if req.BoardID == 0 || req.Title == "" || req.StartsAt == "" || req.EndsAt == "" {
+		return "", "", 0, errors.New("board_id, title, starts_at and ends_at required")
 	}
 
 	startsAt, startTime, err := parseMeetingTime(req.StartsAt)
@@ -228,12 +228,14 @@ func (a *API) validateMeetingWrite(role string, actor int64, req createMeetingRe
 		return "", "", 0, errors.New("can only schedule meetings for your own boards")
 	}
 
-	conflicts, err := db.CountMeetingLocationConflicts(a.conn, req.MeetingID, req.Location, startsAt, endsAt)
-	if err != nil {
-		return "", "", 0, errors.New("failed to check room conflicts")
-	}
-	if conflicts > 0 {
-		return "", "", 0, errors.New("location is already booked during that time")
+	if req.Location != "" {
+		conflicts, err := db.CountMeetingLocationConflicts(a.conn, req.MeetingID, req.Location, startsAt, endsAt)
+		if err != nil {
+			return "", "", 0, errors.New("failed to check room conflicts")
+		}
+		if conflicts > 0 {
+			return "", "", 0, errors.New("location is already booked during that time")
+		}
 	}
 
 	return startsAt, endsAt, boardSupervisorID, nil
