@@ -162,7 +162,10 @@ export default function BoardMeetingsPage() {
     [meetings, selectedMeetingID]
   );
 
-  const selectedParticipants = selectedMeeting ? participantsByMeeting[selectedMeeting.id] || [] : [];
+  const selectedParticipants = useMemo(() => {
+    const rows = selectedMeeting ? participantsByMeeting[selectedMeeting.id] || [] : [];
+    return rows.filter((participant) => (participant.role || "").toLowerCase() !== "supervisor");
+  }, [participantsByMeeting, selectedMeeting]);
 
   useEffect(() => {
     if (!selectedMeeting) return;

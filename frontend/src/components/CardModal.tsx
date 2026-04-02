@@ -1477,7 +1477,7 @@ export default function CardModal({
                           {boardLabels.length === 0 ? (
                             <div className="text-[13px] font-semibold text-slate-500">No labels yet.</div>
                           ) : (
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
                               {boardLabels.map((l) => {
                                 const active = cardLabelIds.has(l.id);
                                 return (
@@ -1487,16 +1487,16 @@ export default function CardModal({
                                     onClick={() => canManageCard && toggleLabel(l.id)}
                                     disabled={!canManageCard}
                                     className={[
-                                      "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold text-[13px]",
+                                      "flex min-h-10 w-full items-center gap-3 rounded-xl border px-3 py-2 text-left font-extrabold text-[13px]",
                                       active
                                         ? "border-indigo-500/35 bg-indigo-500/10"
                                         : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
                                       !canManageCard ? "cursor-default opacity-90 hover:bg-white/85" : "",
                                     ].join(" ")}
                                   >
-                                    <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
-                                    <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                                    <span className="text-[11px] font-extrabold text-slate-500">{active ? "On" : "Off"}</span>
+                                    <span className={`h-2.5 w-2.5 flex-none rounded-full ${labelDotClass(l.color)}`} />
+                                    <span className="min-w-0 flex-1 pr-2 leading-5 whitespace-nowrap overflow-hidden text-ellipsis">{l.name}</span>
+                                    <span className="flex-none text-[11px] font-extrabold text-slate-500">{active ? "On" : "Off"}</span>
                                   </button>
                                 );
                               })}
