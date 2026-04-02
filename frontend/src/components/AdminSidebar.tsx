@@ -90,7 +90,7 @@ export default function AdminSidebar({ active }: Props) {
   return (
     <aside
       className={cn(
-        "w-[248px] border-r border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8f9ff_100%)] p-[18px]",
+        "w-[240px] border-r border-slate-200 bg-white p-[18px]",
         "h-screen sticky top-0 self-start",
         "overflow-y-auto overscroll-contain",
         "max-[1050px]:w-full max-[1050px]:h-auto max-[1050px]:sticky max-[1050px]:top-0 max-[1050px]:overflow-visible"
@@ -99,9 +99,9 @@ export default function AdminSidebar({ active }: Props) {
       <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2">
         <div
           onClick={() => nav(isAdmin ? "/admin" : "/admin/boards")}
-          className="flex cursor-pointer items-center gap-3 rounded-[18px] border border-slate-200/80 bg-white/90 px-3 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.05)]"
+          className="flex cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2"
         >
-          <img src={faviconIcon} alt="Reboot" className="h-11 w-11 rounded-[16px] object-cover shadow-[0_10px_25px_rgba(15,23,42,0.08)]" />
+          <img src={faviconIcon} alt="Reboot" className="h-10 w-10 rounded-[14px] object-cover shadow-[0_10px_25px_rgba(15,23,42,0.06)]" />
           <div>
             <div className="font-black tracking-[-0.2px] text-slate-900">TaskFlow</div>
             <div className="mt-0.5 text-[12px] font-bold text-slate-500">
@@ -110,7 +110,7 @@ export default function AdminSidebar({ active }: Props) {
           </div>
         </div>
 
-        <nav className="grid content-start auto-rows-min gap-2 rounded-[20px] border border-slate-200/70 bg-white/80 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+        <nav className="grid content-start auto-rows-min gap-1.5 px-2 py-2">
           {isAdmin ? (
             <>
               <Item id="dashboard" label="Dashboard" to="/admin" />
@@ -130,13 +130,13 @@ export default function AdminSidebar({ active }: Props) {
         </nav>
 
         <div className="border-t border-slate-200 p-2">
-          <div className="mb-3 flex items-center gap-2 rounded-[18px] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-center gap-2">
             <button
               type="button"
               onClick={() => nav("/profile")}
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-[14px] px-1 py-1 text-left transition outline-none hover:bg-slate-50 focus:outline-none"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-[14px] text-left transition outline-none hover:bg-slate-50 focus:outline-none"
             >
-              <div className="h-10 w-10 rounded-full border border-slate-200 bg-[#e8ecff] flex items-center justify-center flex-shrink-0">
+              <div className="h-9 w-9 rounded-full border border-slate-200 bg-[#e8ecff] flex items-center justify-center flex-shrink-0">
                 <span className="text-[11px] font-extrabold text-[#6d5efc]">{initials}</span>
               </div>
               <div className="min-w-0 flex-1">
