@@ -652,7 +652,7 @@ export default function SupervisorFilePage() {
 
                       <div className="flex flex-none items-center gap-2">
                         <button
-                          className="inline-flex h-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 text-[12px] font-black text-blue-700 hover:bg-blue-100"
+                          className="inline-flex h-8 items-center justify-center rounded-full border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[12px] font-black text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]"
                           type="button"
                           onClick={() => nav(`/admin/boards/${b.id}`)}
                           title="Open board"
@@ -663,7 +663,11 @@ export default function SupervisorFilePage() {
                         <button
                           className="grid h-8 w-10 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition hover:-translate-y-[1px] hover:border-emerald-200 hover:bg-emerald-50"
                           type="button"
-                          onClick={() => nav(`/admin/boards/${b.id}/members`)}
+                          onClick={() =>
+                            nav(`/admin/boards/${b.id}/members`, {
+                              state: { backTo: isAdmin ? `/admin/files/${fileID}` : "/workspace" },
+                            })
+                          }
                           title="Members"
                           aria-label="Members"
                         >

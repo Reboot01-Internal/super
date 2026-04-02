@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
 import { SkeletonBlock } from "../components/Skeleton";
@@ -172,7 +172,7 @@ function RowCard({
       className={`group flex w-full items-center justify-between gap-3 rounded-2xl border p-3 shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition ${
         selected
           ? "border-violet-300 bg-violet-50/50"
-          : "border-slate-200 bg-white hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50/20 hover:shadow-[0_16px_32px_rgba(59,130,246,0.10)]"
+          : "border-slate-200 bg-white hover:-translate-y-[1px] hover:border-[#6d5efc]/18 hover:bg-[#faf8ff] hover:shadow-[0_16px_32px_rgba(109,94,252,0.10)]"
       } ${onClick ? "cursor-pointer" : ""}`}
     >
       <div className="min-w-0">{left}</div>
@@ -183,6 +183,7 @@ function RowCard({
 
 export default function BoardMembersPage() {
   const nav = useNavigate();
+  const location = useLocation();
   const { boardId } = useParams();
   const boardID = Number(boardId);
   const { isAdmin, isSupervisor } = useAuth();
@@ -194,9 +195,7 @@ export default function BoardMembersPage() {
   const [msg, setMsg] = useState("");
 
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">(
-    isSupervisor ? "student" : "all"
-  );
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">("student");
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -378,6 +377,16 @@ export default function BoardMembersPage() {
     if (loading) return "Loading…";
     return `Board #${boardID} • ${members.length} member(s)`;
   }, [loading, boardID, members.length]);
+  const backTo =
+    typeof location.state === "object" && location.state && "backTo" in location.state
+      ? String((location.state as { backTo?: string }).backTo || "/admin/boards")
+      : "/admin/boards";
+  const softButtonClass =
+    "inline-flex h-9 items-center rounded-2xl border border-slate-200 bg-white/90 px-3 text-[12px] font-black text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition hover:-translate-y-[1px] hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60";
+  const neutralPrimaryButtonClass =
+    "inline-flex h-9 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 text-[12px] font-black text-[#6d5efc] shadow-[0_10px_22px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] disabled:cursor-not-allowed disabled:opacity-60";
+  const dangerButtonClass =
+    "inline-flex h-9 items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 text-[12px] font-black text-red-700 shadow-[0_8px_18px_rgba(239,68,68,0.08)] transition hover:-translate-y-[1px] hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <AdminLayout
@@ -386,13 +395,14 @@ export default function BoardMembersPage() {
       subtitle={subtitle}
       right={
         <div className="flex items-center gap-2">
-             <button
-            className="h-10 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 transition hover:border-violet-200 hover:bg-violet-50"
+          <button
+            type="button"
+            className="inline-flex h-10 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
             onClick={() => nav(`/admin/boards/${boardID}`)}
           >
             Board
           </button>
-          <BackButton onClick={() => nav("/admin/boards")} />
+          <BackButton onClick={() => nav(backTo)} />
        
         </div>
       }
@@ -413,27 +423,29 @@ export default function BoardMembersPage() {
 
             <div className="h-3" />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+            <form
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!searching) {
+                  void searchUsers();
+                }
+              }}
+            >
+              <div className="flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
                 <span className="text-slate-500">
                   <SearchIcon />
                 </span>
                 <input
-                  className="w-full bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
                   placeholder="Search users"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (!searching) searchUsers();
-                    }
-                  }}
                 />
               </div>
 
               <select
-                className="h-11 w-[170px] rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200"
+                className="h-11 w-[170px] rounded-2xl border border-slate-200 bg-white/90 px-3 text-[14px] font-bold text-slate-900 outline-none shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as any)}
                 disabled={isSupervisor}
@@ -444,35 +456,38 @@ export default function BoardMembersPage() {
               </select>
 
               <button
-                className="h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
-                onClick={searchUsers}
+                type="submit"
+                className="inline-flex h-11 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-4 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={searching}
               >
                 {searching ? "Searching..." : "Search"}
               </button>
-            </div>
+            </form>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={softButtonClass}
                 onClick={selectAllResults}
                 disabled={results.length === 0}
               >
                 Select all
               </button>
               <button
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={softButtonClass}
                 onClick={() => setSelectedResultIds(new Set())}
                 disabled={selectedResultIds.size === 0}
               >
                 Clear
               </button>
               <button
-                className="h-9 rounded-xl bg-slate-900 px-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={neutralPrimaryButtonClass}
                 onClick={addSelected}
                 disabled={selectedResultIds.size === 0 || adding}
               >
-                {adding ? "Adding..." : `Add selected (${selectedResultIds.size})`}
+                {adding ? "Adding..." : `Add selected ${selectedResultIds.size}`}
               </button>
             </div>
 
@@ -507,7 +522,11 @@ export default function BoardMembersPage() {
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={() => toggleResult(u.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleResult(u.id);
+                              }}
                               className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
                             />
                             <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
@@ -549,26 +568,29 @@ export default function BoardMembersPage() {
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={softButtonClass}
                 onClick={selectAllMembers}
                 disabled={removableMembers.length === 0}
               >
                 Select removable
               </button>
               <button
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={softButtonClass}
                 onClick={() => setSelectedMemberIds(new Set())}
                 disabled={selectedMemberIds.size === 0}
               >
                 Clear
               </button>
               <button
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                className={dangerButtonClass}
                 onClick={() => removeMembers(Array.from(selectedMemberIds))}
                 disabled={selectedMemberIds.size === 0 || removing}
               >
                 <BinIcon size={14} />
-                {removing ? "Removing..." : `Remove selected (${selectedMemberIds.size})`}
+                {removing ? "Removing..." : `Remove selected ${selectedMemberIds.size}`}
               </button>
             </div>
 
@@ -599,7 +621,11 @@ export default function BoardMembersPage() {
                               type="checkbox"
                               checked={checked}
                               disabled={isOwner}
-                              onChange={() => toggleMember(m.user_id)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleMember(m.user_id);
+                              }}
                               className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 disabled:opacity-40"
                             />
                             <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
