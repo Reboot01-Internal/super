@@ -177,11 +177,13 @@ function RowCard({
   left,
   right,
   selected,
+  selectedTone = "violet",
   onClick,
 }: {
   left: React.ReactNode;
   right?: React.ReactNode;
   selected?: boolean;
+  selectedTone?: "violet" | "red";
   onClick?: () => void;
 }) {
   return (
@@ -189,7 +191,9 @@ function RowCard({
       onClick={onClick}
       className={`group flex w-full items-center justify-between gap-3 rounded-2xl border p-3 shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition ${
         selected
-          ? "border-violet-300 bg-violet-50/50"
+          ? selectedTone === "red"
+            ? "border-red-200 bg-red-50/35 shadow-[0_10px_22px_rgba(239,68,68,0.06)]"
+            : "border-violet-300 bg-violet-50/50"
           : "border-slate-200 bg-white hover:-translate-y-[1px] hover:border-[#6d5efc]/18 hover:bg-[#faf8ff] hover:shadow-[0_16px_32px_rgba(109,94,252,0.10)]"
       } ${onClick ? "cursor-pointer" : ""}`}
     >
@@ -439,7 +443,7 @@ export default function BoardMembersPage() {
       <div className="w-full max-w-full overflow-x-hidden">
         <section className="grid min-w-0 h-[calc(100vh-220px)] grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="grid min-h-0 gap-4">
-            <section className="flex min-h-0 flex-col rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+            <section className="flex min-h-0 flex-col rounded-[18px] border border-slate-200 bg-white px-4 pb-4 pt-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-base font-black text-slate-900">Add members</div>
@@ -532,9 +536,9 @@ export default function BoardMembersPage() {
               </div>
             ) : null}
 
-            <div className="h-4" />
+            <div className="h-6" />
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 overflow-y-auto pt-1 pr-1 [scrollbar-width:thin]">
               {results.length === 0 ? (
                 <div className="text-sm font-semibold text-slate-500">No matching users found.</div>
               ) : (
@@ -640,68 +644,54 @@ export default function BoardMembersPage() {
                     const isOwner = (m.role_in_board || "").toLowerCase() === "owner";
                     const checked = selectedMemberIds.has(m.user_id);
                     return (
-                      <RowCard
+                      <label
                         key={m.user_id}
-                        selected={checked}
-                        onClick={isOwner ? undefined : () => toggleMember(m.user_id)}
-                        left={
-                          <div className="flex min-w-0 items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={isOwner}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                toggleMember(m.user_id);
-                              }}
-                              className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 disabled:opacity-40"
-                            />
-                            <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                              {initials(m.full_name)}
-                            </div>
+                        className={`flex min-w-0 items-center gap-3 rounded-2xl border px-3 py-2.5 transition ${
+                          isOwner ? "" : "cursor-pointer"
+                        } ${
+                          checked
+                            ? "border-red-200 bg-red-50/35 shadow-[0_10px_22px_rgba(239,68,68,0.06)]"
+                            : "border-slate-200/70 bg-white/80 hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={isOwner}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleMember(m.user_id);
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 disabled:opacity-40"
+                        />
+                        <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
+                          {initials(m.full_name)}
+                        </div>
 
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
-                              <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
-                                {displayNick(m.nickname, m.email)}
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-2">
-                                <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
-                                  <MailIcon /> <span className="truncate">{m.email}</span>
-                                </span>
-                                <RolePill role={m.role} />
-                                <BoardRolePill roleInBoard={m.role_in_board} />
-                                {isOwner ? (
-                                  <span
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500"
-                                    title="Protected owner"
-                                    aria-label="Protected owner"
-                                  >
-                                    <LockIcon size={13} />
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                          <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
+                            {displayNick(m.nickname, m.email)}
                           </div>
-                        }
-                        right={
-                          isOwner ? null : (
-                            <button
-                              type="button"
-                              title="Remove member"
-                              disabled={removing}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeMembers([m.user_id]);
-                              }}
-                            >
-                              <BinIcon size={14} />
-                            </button>
-                          )
-                        }
-                      />
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
+                              <MailIcon /> <span className="truncate">{m.email}</span>
+                            </span>
+                            <RolePill role={m.role} />
+                            <BoardRolePill roleInBoard={m.role_in_board} />
+                            {isOwner ? (
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500"
+                                title="Protected owner"
+                                aria-label="Protected owner"
+                              >
+                                <LockIcon size={13} />
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </label>
                     );
                   })}
                 </div>
