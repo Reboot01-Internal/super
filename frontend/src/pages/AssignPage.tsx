@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 // import "../admin.css";
@@ -75,6 +76,7 @@ function displayNickname(nickname: string) {
 }
 
 export default function AssignPage() {
+  const nav = useNavigate();
   const [supervisors, setSupervisors] = useState<User[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [assigned, setAssigned] = useState<User[]>([]);
@@ -260,11 +262,17 @@ export default function AssignPage() {
 
   return (
     <AdminLayout
-      active="assign"
+      active="supervisors"
       title="Assign students"
       subtitle="Select a supervisor, then assign multiple students at once."
       right={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2 overflow-hidden">
+          <button
+            className="h-10 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[12.5px] md:text-[13px] font-black text-slate-900 hover:border-violet-300 hover:bg-violet-50"
+            onClick={() => nav("/admin/supervisors")}
+          >
+            Back
+          </button>
           <button
             className={cn(
               "h-10 md:h-11 rounded-[14px] px-3 md:px-4 text-[12.5px] md:text-[13px] font-black text-white",

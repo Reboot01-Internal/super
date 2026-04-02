@@ -134,6 +134,12 @@ export default function SupervisorsPage() {
       right={
         <div className="flex items-center gap-2">
           <button
+            className="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-sm font-extrabold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+            onClick={() => nav("/admin/assign")}
+          >
+            Assign Students
+          </button>
+          <button
             className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 hover:border-violet-300 hover:bg-violet-50"
             onClick={() => nav("/admin")}
           >

@@ -4,12 +4,11 @@ import { useAuth } from "../lib/auth";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
-  active?: "dashboard" | "supervisors" | "boards" | "assign" | "reports" | "profile" | "users" | "meetings" | "notifications";
+  active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
-  showLogout?: boolean;
 };
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -22,10 +21,9 @@ export default function AdminLayout({
   subtitle,
   right,
   children,
-  showLogout = true,
 }: Props) {
   const nav = useNavigate();
-  const { isAdmin, login, email, logout } = useAuth();
+  const { isAdmin, login, email } = useAuth();
   const baseName = login || email || "User";
   const profileInitials = baseName
     .replace(/^@/, "")
@@ -111,20 +109,6 @@ export default function AdminLayout({
               ) : null}
 
               {right}
-
-              {showLogout && (
-                <button
-                  type="button"
-                  onClick={logout}
-                  className={cn(
-                    "h-10 rounded-[14px] border border-slate-200 bg-slate-50 px-3",
-                    "font-extrabold text-slate-900 transition",
-                    "hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
-                  )}
-                >
-                  Logout
-                </button>
-              )}
             </div>
           </header>
 

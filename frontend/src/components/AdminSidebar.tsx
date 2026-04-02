@@ -4,7 +4,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import faviconIcon from "/favicon-icon.png";
 
-type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "assign" | "profile" | "users" | "meetings" | "notifications" };
+type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications" };
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -12,7 +12,7 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 export default function AdminSidebar({ active }: Props) {
   const nav = useNavigate();
-  const { isAdmin, login, email, role, displayName, setDisplayName } = useAuth();
+  const { isAdmin, login, email, role, displayName, setDisplayName, logout } = useAuth();
   const fallbackName = login || email || "User";
 
   useEffect(() => {
@@ -79,6 +79,14 @@ export default function AdminSidebar({ active }: Props) {
     );
   };
 
+  const SignOutIcon = ({ size = 16 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+
   return (
     <aside
       className={cn(
@@ -108,7 +116,6 @@ export default function AdminSidebar({ active }: Props) {
               <Item id="dashboard" label="Dashboard" to="/admin" />
               <Item id="supervisors" label="Supervisors" to="/admin/supervisors" />
               <Item id="boards" label="Boards" to="/admin/boards" />
-              <Item id="assign" label="Assign" to="/admin/assign" />
               <Item id="users" label="Users" to="/admin/users" />
               <Item id="meetings" label="Meetings" to="/admin/meetings" />
               <Item id="notifications" label="Notifications" to="/notifications" />
@@ -123,19 +130,31 @@ export default function AdminSidebar({ active }: Props) {
         </nav>
 
         <div className="border-t border-slate-200 p-2">
-          <button
-            type="button"
-            onClick={() => nav("/profile")}
-            className="mb-3 flex w-full items-center gap-3 rounded-[14px] text-left transition outline-none hover:bg-slate-50 focus:outline-none"
-          >
-            <div className="h-9 w-9 rounded-full border border-slate-200 bg-[#e8ecff] flex items-center justify-center flex-shrink-0">
-              <span className="text-[11px] font-extrabold text-[#6d5efc]">{initials}</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-extrabold text-slate-900">{footerName}</div>
-              <div className="mt-0.5 truncate text-[12px] font-bold text-slate-500">{footerSub}</div>
-            </div>
-          </button>
+          <div className="mb-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => nav("/profile")}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-[14px] text-left transition outline-none hover:bg-slate-50 focus:outline-none"
+            >
+              <div className="h-9 w-9 rounded-full border border-slate-200 bg-[#e8ecff] flex items-center justify-center flex-shrink-0">
+                <span className="text-[11px] font-extrabold text-[#6d5efc]">{initials}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-extrabold text-slate-900">{footerName}</div>
+                <div className="mt-0.5 truncate text-[12px] font-bold text-slate-500">{footerSub}</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              title="Log out"
+              aria-label="Log out"
+              className="grid h-10 w-10 flex-none place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <SignOutIcon />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
