@@ -84,6 +84,31 @@ function ShieldCheckIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function UserPlusIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 20a7 7 0 0 1 14 0"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M19 8h4M21 6v4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function SupervisorsPage() {
   const nav = useNavigate();
 
@@ -134,9 +159,10 @@ export default function SupervisorsPage() {
       right={
         <div className="flex items-center gap-2">
           <button
-            className="h-10 rounded-xl bg-gradient-to-br from-[#6d5efc] to-[#9a8cff] px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition hover:brightness-[1.03]"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
             onClick={() => nav("/admin/assign")}
           >
+            <UserPlusIcon size={15} />
             Assign Students
           </button>
           <button
