@@ -148,27 +148,26 @@ export default function SupervisorsPage() {
         </div>
       }
     >
-      {/* Search card */}
-      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="text-base font-black text-slate-900">Directory</div>
-            <div className="mt-2 text-sm font-semibold text-slate-500">
-              Search by name, email, or username, then open the workspace.
-            </div>
-          </div>
-
-          <div className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)] lg:w-[380px]">
-            <span className="text-slate-400" aria-hidden="true">
-              <SearchIcon />
-            </span>
-            <input
-              className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
-              placeholder="Search by name/email/username..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
+      <div className="mb-5 flex justify-center">
+        <div className="flex h-12 w-full max-w-[520px] items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur">
+          <span className="text-slate-400" aria-hidden="true">
+            <SearchIcon size={18} />
+          </span>
+          <input
+            className="w-full bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
+            placeholder="Search by name, email, or username..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {q.trim() ? (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-[11px] font-black text-slate-500 transition hover:border-slate-300 hover:bg-white hover:text-slate-700"
+            >
+              Clear
+            </button>
+          ) : null}
         </div>
       </div>
 
