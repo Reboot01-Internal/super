@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"taskflow/internal/db"
+	"taskflow/internal/utils"
 )
 
 type profileUser struct {
@@ -69,6 +70,11 @@ type profileSummaryResp struct {
 	Tasks      profileTaskSection        `json:"tasks"`
 }
 
+type addStudentPrivateNoteReq struct {
+	UserID int64  `json:"user_id"`
+	Body   string `json:"body"`
+}
+
 type profileTaskRow struct {
 	CardID       int64  `json:"card_id"`
 	CardTitle    string `json:"card_title"`
@@ -87,6 +93,36 @@ type profileTaskSection struct {
 	Left          int64            `json:"left"`
 	ProgressPct   int64            `json:"progress_pct"`
 	AssignedCards []profileTaskRow `json:"assigned_cards"`
+}
+
+func (a *API) authorizeStudentPrivateNotesAccess(viewerRole string, viewerID, studentID int64) error {
+	if studentID <= 0 {
+		return sql.ErrNoRows
+	}
+
+	hasStudentRole, err := db.UserHasRole(a.conn, studentID, "student")
+	if err != nil {
+		return err
+	}
+	if !hasStudentRole {
+		return sql.ErrNoRows
+	}
+
+	switch viewerRole {
+	case "admin":
+		return nil
+	case "supervisor":
+		allowed, err := db.IsStudentAssignedToSupervisor(a.conn, viewerID, studentID)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return sql.ErrNoRows
+		}
+		return nil
+	default:
+		return sql.ErrNoRows
+	}
 }
 
 func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +227,68 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 	out.Tasks = tasks
 
 	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *API) ListStudentPrivateNotes(w http.ResponseWriter, r *http.Request) {
+	viewerID := actorID(r, a.conn)
+	viewerRole := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	studentID, err := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("user_id")), 10, 64)
+	if err != nil || studentID <= 0 {
+		writeErr(w, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+
+	if err := a.authorizeStudentPrivateNotesAccess(viewerRole, viewerID, studentID); err != nil {
+		if err == sql.ErrNoRows {
+			writeErr(w, http.StatusForbidden, "not allowed to view these notes")
+			return
+		}
+		writeErr(w, http.StatusInternalServerError, "failed to validate notes access")
+		return
+	}
+
+	notes, err := db.ListStudentPrivateNotes(a.conn, studentID, 100)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to load notes")
+		return
+	}
+	writeJSON(w, http.StatusOK, notes)
+}
+
+func (a *API) AddStudentPrivateNote(w http.ResponseWriter, r *http.Request) {
+	viewerID := actorID(r, a.conn)
+	viewerRole := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if viewerRole != "admin" && viewerRole != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can add notes")
+		return
+	}
+
+	var req addStudentPrivateNoteReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+	req.Body = strings.TrimSpace(req.Body)
+	if req.UserID <= 0 || req.Body == "" {
+		writeErr(w, http.StatusBadRequest, "user_id and body required")
+		return
+	}
+
+	if err := a.authorizeStudentPrivateNotesAccess(viewerRole, viewerID, req.UserID); err != nil {
+		if err == sql.ErrNoRows {
+			writeErr(w, http.StatusForbidden, "not allowed to add notes for this student")
+			return
+		}
+		writeErr(w, http.StatusInternalServerError, "failed to validate notes access")
+		return
+	}
+
+	id, err := db.CreateStudentPrivateNote(a.conn, req.UserID, viewerID, req.Body)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to save note")
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"id": id, "ok": true})
 }
 
 func (a *API) profileTasks(userID int64) (profileTaskSection, error) {

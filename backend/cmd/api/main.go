@@ -170,6 +170,8 @@ func main() {
 		ar.Get("/settings/discord", api.DiscordSettings)
 		ar.Post("/settings/discord", api.UpdateDiscordSettings)
 		ar.Get("/profile/summary", api.ProfileSummary)
+		ar.Get("/profile/notes", api.ListStudentPrivateNotes)
+		ar.Post("/profile/notes", api.AddStudentPrivateNote)
 
 		// supervisor-student assignments
 		ar.Get("/assign/supervisors", api.AdminAssignListSupervisors)
@@ -224,6 +226,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/013_notifications_phase2.sql",
 		"migrations/014_app_settings.sql",
 		"migrations/015_user_roles.sql",
+		"migrations/016_student_private_notes.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

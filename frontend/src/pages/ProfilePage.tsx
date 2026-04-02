@@ -78,6 +78,17 @@ type BoardMember = {
   role_in_board: string;
 };
 
+type StudentPrivateNote = {
+  id: number;
+  student_id: number;
+  author_user_id: number;
+  author_name: string;
+  author_role: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
 function num(value: number | null | undefined, digits = 2) {
   if (typeof value !== "number" || Number.isNaN(value)) return "-";
   return value.toLocaleString(undefined, { maximumFractionDigits: digits });
@@ -264,6 +275,10 @@ export default function ProfilePage() {
   const [membersByBoard, setMembersByBoard] = useState<Record<number, BoardMember[]>>({});
   const [membersOpen, setMembersOpen] = useState<Record<number, boolean>>({});
   const [membersLoading, setMembersLoading] = useState<Record<number, boolean>>({});
+  const [privateNotes, setPrivateNotes] = useState<StudentPrivateNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -316,6 +331,60 @@ export default function ProfilePage() {
           subtitle: `${b.students_count} students`,
           group: "",
         }));
+  const canViewPrivateNotes =
+    isTargetUserView && (role === "admin" || role === "supervisor") && localProfile?.user?.role === "student";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPrivateNotes() {
+      if (!canViewPrivateNotes || !targetUserID) {
+        setPrivateNotes([]);
+        setNoteDraft("");
+        setNotesLoading(false);
+        return;
+      }
+
+      setNotesLoading(true);
+      try {
+        const res = await apiFetch(`/admin/profile/notes?user_id=${targetUserID}`);
+        if (!cancelled) {
+          setPrivateNotes(Array.isArray(res) ? res : []);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setPrivateNotes([]);
+          setErr((prev) => prev || e?.message || "Failed to load private notes");
+        }
+      } finally {
+        if (!cancelled) setNotesLoading(false);
+      }
+    }
+
+    void loadPrivateNotes();
+    return () => {
+      cancelled = true;
+    };
+  }, [canViewPrivateNotes, targetUserID]);
+
+  async function addPrivateNote() {
+    if (!canViewPrivateNotes || !targetUserID || !noteDraft.trim()) return;
+    setSavingNote(true);
+    setErr("");
+    try {
+      await apiFetch("/admin/profile/notes", {
+        method: "POST",
+        body: JSON.stringify({ user_id: targetUserID, body: noteDraft.trim() }),
+      });
+      const res = await apiFetch(`/admin/profile/notes?user_id=${targetUserID}`);
+      setPrivateNotes(Array.isArray(res) ? res : []);
+      setNoteDraft("");
+    } catch (e: any) {
+      setErr(e?.message || "Failed to save private note");
+    } finally {
+      setSavingNote(false);
+    }
+  }
 
   async function toggleMembers(boardID: number) {
     const isOpen = !!membersOpen[boardID];
@@ -670,6 +739,85 @@ export default function ProfilePage() {
               </section>
             )}
           </div>
+
+          {canViewPrivateNotes ? (
+            <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[18px] font-black text-slate-900">Private Supervisor Notes</div>
+                  <div className="mt-1 text-[12px] font-bold text-slate-500">
+                    Only supervisors and admins can see these notes. Students cannot access them.
+                  </div>
+                </div>
+                <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
+                  {privateNotes.length} notes
+                </span>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+                <div className="rounded-xl border border-[#6d5efc]/15 bg-[linear-gradient(180deg,#faf8ff_0%,#f6f7ff_100%)] p-3">
+                  <div className="text-[12px] font-black uppercase tracking-[0.12em] text-[#6d5efc]">
+                    Notes
+                  </div>
+                  <textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    className="mt-3 min-h-[180px] w-full rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-[#6d5efc]/35 focus:ring-4 focus:ring-[#6d5efc]/10"
+                    placeholder="Write what this student is like to work with, how they learn, how they communicate, and anything admins or supervisors should know when viewing this profile."
+                  />
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3 sm:flex-nowrap">
+                    <div className="max-w-[220px] text-[11px] font-bold leading-5 text-slate-500">
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addPrivateNote}
+                      disabled={savingNote || !noteDraft.trim()}
+                      className="inline-flex h-11 min-w-[136px] shrink-0 items-center justify-center whitespace-nowrap rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc] px-5 text-[13px] font-black text-white transition hover:bg-[#5f50f6] disabled:opacity-60"
+                    >
+                      {savingNote ? "Saving..." : "Save note"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="text-[13px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Note history
+                    </div>
+                  </div>
+
+                  {notesLoading ? (
+                    <div className="text-[13px] font-semibold text-slate-500">Loading notes...</div>
+                  ) : privateNotes.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-[13px] font-semibold text-slate-500">
+                      No private notes yet for this student.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[320px]">
+                      {privateNotes.map((note) => (
+                        <div key={note.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-black text-slate-900">{note.author_name}</div>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 capitalize">
+                                  {note.author_role || "staff"}
+                                </span>
+                                <span>{new Date(note.created_at).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 whitespace-pre-wrap text-[13px] font-semibold leading-6 text-slate-700">
+                            {note.body}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
     </AdminLayout>

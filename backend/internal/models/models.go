@@ -109,6 +109,17 @@ type CardComment struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
+type StudentPrivateNote struct {
+	ID           int64  `json:"id"`
+	StudentID    int64  `json:"student_id"`
+	AuthorUserID int64  `json:"author_user_id"`
+	AuthorName   string `json:"author_name"`
+	AuthorRole   string `json:"author_role"`
+	Body         string `json:"body"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
 type CardAttachment struct {
 	ID             int64  `json:"id"`
 	CardID         int64  `json:"card_id"`
@@ -149,16 +160,16 @@ type Meeting struct {
 }
 
 type MeetingParticipant struct {
-	MeetingID         int64  `json:"meeting_id"`
-	UserID            int64  `json:"user_id"`
-	FullName          string `json:"full_name"`
-	Nickname          string `json:"nickname"`
-	Email             string `json:"email"`
-	Role              string `json:"role"`
-	RoleInBoard       string `json:"role_in_board"`
-	RSVPStatus        string `json:"rsvp_status"`
-	AttendanceStatus  string `json:"attendance_status"`
-	UpdatedAt         string `json:"updated_at"`
+	MeetingID        int64  `json:"meeting_id"`
+	UserID           int64  `json:"user_id"`
+	FullName         string `json:"full_name"`
+	Nickname         string `json:"nickname"`
+	Email            string `json:"email"`
+	Role             string `json:"role"`
+	RoleInBoard      string `json:"role_in_board"`
+	RSVPStatus       string `json:"rsvp_status"`
+	AttendanceStatus string `json:"attendance_status"`
+	UpdatedAt        string `json:"updated_at"`
 }
 
 type AppNotification struct {
@@ -175,13 +186,13 @@ type AppNotification struct {
 }
 
 type MeetingRoomNotification struct {
-	MeetingID  int64  `json:"meeting_id"`
-	BoardID    int64  `json:"board_id"`
-	BoardName  string `json:"board_name"`
-	Title      string `json:"title"`
-	Location   string `json:"location"`
-	StartsAt   string `json:"starts_at"`
-	EndsAt     string `json:"ends_at"`
+	MeetingID int64  `json:"meeting_id"`
+	BoardID   int64  `json:"board_id"`
+	BoardName string `json:"board_name"`
+	Title     string `json:"title"`
+	Location  string `json:"location"`
+	StartsAt  string `json:"starts_at"`
+	EndsAt    string `json:"ends_at"`
 }
 
 type DiscordDueNotification struct {
