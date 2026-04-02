@@ -219,7 +219,7 @@ export default function AdminLayout({
         {isAdmin ? <AdminSidebar active={active} /> : null}
         {!isAdmin ? nonAdminNav : null}
 
-        <main className={cn("p-[22px]", "pl-0 max-[1050px]:pl-[22px]")}>
+        <main className={cn("px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[22px]")}>
           <header className="mb-4 flex items-start justify-between gap-3 max-[1050px]:flex-col">
             <div>
               <div className="text-[13px] font-bold text-slate-500">Welcome back</div>
