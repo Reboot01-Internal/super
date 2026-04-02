@@ -815,7 +815,7 @@ export default function MeetingsCalendarPage() {
                   <Field label="Date">
                     <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
                   </Field>
-                  <Field label="Location (optional)">
+                  <Field label="Location">
                     <select value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300">
                       {MEETING_LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
                     </select>
@@ -862,10 +862,10 @@ function MetaPill({ label, value }: { label: string; value: string }) {
 
 function meetingSurfaceClass(status: MeetingRow["status"]) {
   if (status === "completed") {
-    return "border-emerald-300 bg-emerald-50/40 text-slate-900 shadow-sm";
+    return "border-emerald-300 bg-emerald-50/40 text-slate-900";
   }
   if (status === "canceled") {
-    return "border-rose-300 bg-rose-50/40 text-slate-900 shadow-sm";
+    return "border-rose-300 bg-rose-50/40 text-slate-900";
   }
   return "border-slate-200 bg-white/95 text-slate-900 shadow-sm";
 }
