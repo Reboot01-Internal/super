@@ -1,7 +1,11 @@
 @import "./theme.css";
 @import "tailwindcss";
 /* Small improvements */
-button, input, select {
+html {
+  font-family: var(--font-sans);
+}
+
+body, button, input, select, textarea {
   font: inherit;
 }
 /* micro animations */
