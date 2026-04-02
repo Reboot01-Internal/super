@@ -93,6 +93,17 @@ function BinIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function TransferIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 7h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M14 4l4 3-4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17 17H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 14l-4 3 4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function SupervisorFilePage() {
   const nav = useNavigate();
   const { fileId } = useParams();
@@ -113,6 +124,10 @@ export default function SupervisorFilePage() {
   const [editingBoardName, setEditingBoardName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [deletingBoardID, setDeletingBoardID] = useState<number | null>(null);
+  const [supervisors, setSupervisors] = useState<SupervisorLookup[]>([]);
+  const [reassignBoard, setReassignBoard] = useState<Board | null>(null);
+  const [nextSupervisorID, setNextSupervisorID] = useState<number>(0);
+  const [reassigning, setReassigning] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -136,6 +151,27 @@ export default function SupervisorFilePage() {
       alive = false;
     };
   }, [isSupervisor, fileIDParam, email, login]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadSupervisors() {
+      if (!isAdmin) return;
+      try {
+        const rows: SupervisorLookup[] = await apiFetch("/admin/supervisors");
+        if (!alive) return;
+        setSupervisors(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (!alive) return;
+        setSupervisors([]);
+      }
+    }
+
+    loadSupervisors();
+    return () => {
+      alive = false;
+    };
+  }, [isAdmin]);
 
   const fileID = Number.isFinite(fileIDParam) ? fileIDParam : resolvedFileID;
 
@@ -268,9 +304,51 @@ export default function SupervisorFilePage() {
     }
   }
 
+  function openReassign(board: Board) {
+    const firstEligible = supervisors.find((item) => item.file_id !== board.supervisor_file_id);
+    setErr("");
+    setMsg("");
+    setReassignBoard(board);
+    setNextSupervisorID(firstEligible?.supervisor_user_id || 0);
+  }
+
+  function closeReassign() {
+    setReassignBoard(null);
+    setNextSupervisorID(0);
+  }
+
+  async function submitReassign() {
+    if (!reassignBoard || !nextSupervisorID || reassigning) return;
+
+    setReassigning(true);
+    setErr("");
+    setMsg("");
+    try {
+      await apiFetch("/admin/boards/reassign", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: reassignBoard.id,
+          supervisor_user_id: nextSupervisorID,
+        }),
+      });
+      setMsg(`Board moved to the new supervisor workspace.`);
+      closeReassign();
+      await loadBoards();
+    } catch (e: any) {
+      setErr(e.message || "Failed to reassign board ownership");
+    } finally {
+      setReassigning(false);
+    }
+  }
+
   const boardsSorted = useMemo(() => {
     return [...boards].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [boards]);
+
+  const eligibleSupervisors = useMemo(() => {
+    if (!reassignBoard) return [];
+    return supervisors.filter((item) => item.file_id !== reassignBoard.supervisor_file_id);
+  }, [reassignBoard, supervisors]);
 
   const nameMax = 60;
   const descMax = 120;
@@ -278,6 +356,81 @@ export default function SupervisorFilePage() {
   return (
     <>
     {confirmDialog}
+    {reassignBoard ? (
+      <div
+        className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
+        onClick={closeReassign}
+      >
+        <div
+          className="w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[18px] font-black text-slate-900">Reassign Board Ownership</div>
+              <div className="mt-1 text-[13px] font-semibold text-slate-500">
+                Move <span className="font-black text-slate-900">{reassignBoard.name}</span> to another supervisor workspace.
+              </div>
+            </div>
+            <button
+              className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+              onClick={closeReassign}
+              disabled={reassigning}
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            <label className="grid gap-2">
+              <span className="text-[12px] font-extrabold text-slate-500">New owner</span>
+              <select
+                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
+                value={nextSupervisorID}
+                onChange={(e) => setNextSupervisorID(Number(e.target.value))}
+                disabled={reassigning || eligibleSupervisors.length === 0}
+              >
+                <option value={0}>
+                  {eligibleSupervisors.length === 0 ? "No other supervisors available" : "Select a supervisor"}
+                </option>
+                {eligibleSupervisors.map((item) => (
+                  <option key={item.supervisor_user_id} value={item.supervisor_user_id}>
+                    {item.full_name} {item.nickname ? `(@${item.nickname})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {eligibleSupervisors.length > 0 ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+                The current owner will be removed from this board, and Discord access will sync to the new owner.
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold text-slate-600">
+                Add another supervisor first, then you can transfer this board.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              className="h-11 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={submitReassign}
+              disabled={reassigning || !nextSupervisorID}
+            >
+              {reassigning ? "Moving..." : "Move board"}
+            </button>
+            <button
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+              onClick={closeReassign}
+              disabled={reassigning}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
     <AdminLayout
       active={isAdmin ? "supervisors" : "boards"}
       title="Workspace"
@@ -516,6 +669,18 @@ export default function SupervisorFilePage() {
                         >
                           <UsersIcon />
                         </button>
+
+                        {isAdmin ? (
+                          <button
+                            className="grid h-8 w-10 place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700 transition hover:-translate-y-[1px] hover:bg-amber-100"
+                            type="button"
+                            onClick={() => openReassign(b)}
+                            title="Reassign board"
+                            aria-label="Reassign board"
+                          >
+                            <TransferIcon />
+                          </button>
+                        ) : null}
 
                         <button
                           className="grid h-8 w-10 place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:-translate-y-[1px] hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"

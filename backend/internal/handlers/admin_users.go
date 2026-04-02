@@ -372,6 +372,11 @@ type updateBoardReq struct {
 	Name    string `json:"name"`
 }
 
+type reassignBoardReq struct {
+	BoardID          int64 `json:"board_id"`
+	SupervisorUserID int64 `json:"supervisor_user_id"`
+}
+
 func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 	var req createBoardReq
 	if err := utils.ReadJSON(r, &req); err != nil {
@@ -519,6 +524,64 @@ func (a *API) AdminUpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.UpdateBoardName(a.conn, req.BoardID, req.Name); err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to update board")
+		return
+	}
+
+	discordSynced := a.syncBoardDiscordChannel(req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":             true,
+		"discord_synced": discordSynced,
+	})
+}
+
+func (a *API) AdminReassignBoard(w http.ResponseWriter, r *http.Request) {
+	var req reassignBoardReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+
+	if req.BoardID == 0 || req.SupervisorUserID == 0 {
+		writeErr(w, http.StatusBadRequest, "board_id and supervisor_user_id required")
+		return
+	}
+
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" {
+		writeErr(w, http.StatusForbidden, "only admin can reassign board ownership")
+		return
+	}
+
+	if _, err := db.GetBoardBasic(a.conn, req.BoardID); err != nil {
+		writeErr(w, http.StatusNotFound, "board not found")
+		return
+	}
+
+	targetRole, err := db.GetUserRole(a.conn, req.SupervisorUserID)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid supervisor")
+		return
+	}
+	if !strings.EqualFold(strings.TrimSpace(targetRole), "supervisor") {
+		writeErr(w, http.StatusBadRequest, "target user must be a supervisor")
+		return
+	}
+
+	if err := db.EnsureSupervisorFile(a.conn, req.SupervisorUserID); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to prepare supervisor workspace")
+		return
+	}
+
+	if err := db.ReassignBoardSupervisor(a.conn, req.BoardID, req.SupervisorUserID); err != nil {
+		if err == sql.ErrNoRows {
+			writeErr(w, http.StatusBadRequest, "invalid board or supervisor")
+			return
+		}
+		writeErr(w, http.StatusInternalServerError, "failed to reassign board ownership")
 		return
 	}
 

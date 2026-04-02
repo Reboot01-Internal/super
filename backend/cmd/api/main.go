@@ -106,6 +106,7 @@ func main() {
 		ar.Post("/boards", api.AdminCreateBoard)
 		ar.Get("/boards", api.AdminListBoardsByFile)
 		ar.Post("/boards/update", api.AdminUpdateBoard)
+		ar.Post("/boards/reassign", api.AdminReassignBoard)
 		ar.Post("/boards/delete", api.AdminDeleteBoard)
 
 		ar.Post("/board-members", api.AdminAddBoardMember)
