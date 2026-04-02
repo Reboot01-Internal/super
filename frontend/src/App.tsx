@@ -27,7 +27,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { authenticated, isAdmin } = useAuth();
   if (!authenticated) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/admin/boards" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
   return <>{children}</>;
 }
 
@@ -43,28 +43,28 @@ function RequireBoardsAccess({ children }: { children: ReactNode }) {
 function RequireManageBoards({ children }: { children: ReactNode }) {
   const { authenticated, isAdmin, isSupervisor } = useAuth();
   if (!authenticated) return <Navigate to="/login" replace />;
-  if (!isAdmin && !isSupervisor) return <Navigate to="/admin/boards" />;
+  if (!isAdmin && !isSupervisor) return <Navigate to="/dashboard" />;
   return <>{children}</>;
 }
 
 function RequireSupervisor({ children }: { children: ReactNode }) {
   const { authenticated, isSupervisor } = useAuth();
   if (!authenticated) return <Navigate to="/login" replace />;
-  if (!isSupervisor) return <Navigate to="/admin/boards" replace />;
+  if (!isSupervisor) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
 function AdminRoute() {
   const { isAdmin } = useAuth();
   if (isAdmin) return <AdminDashboard />;
-  return <Navigate to="/admin/boards" />;
+  return <Navigate to="/dashboard" />;
 }
 
 function CatchAll() {
   const { authenticated, isAdmin } = useAuth();
   if (!authenticated) return <Navigate to="/login" replace />;
   if (isAdmin) return <Navigate to="/admin" />;
-  return <Navigate to="/admin/boards" />;
+  return <Navigate to="/dashboard" />;
 }
 
 export default function App() {

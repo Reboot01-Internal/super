@@ -154,7 +154,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (auth.authenticated) {
-      nav(auth.isAdmin ? "/admin" : "/admin/boards");
+      nav(auth.isAdmin ? "/admin" : "/dashboard");
     }
   }, [auth.authenticated, auth.isAdmin, nav]);
 
@@ -235,7 +235,7 @@ export default function LoginPage() {
       auth.setSession({ jwt, email, login, role, displayName: "" });
 
       if (role === "admin") nav("/admin");
-      else nav("/admin/boards");
+      else nav("/dashboard");
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {
