@@ -1,7 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import { useAuth } from "../lib/auth";
-import { useNavigate } from "react-router-dom";
+import faviconIcon from "/favicon-icon.png";
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
@@ -13,6 +14,58 @@ type Props = {
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+function SignOutIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function NavItem({
+  label,
+  icon,
+  onClick,
+  activeItem = false,
+  tone = "slate",
+  ariaLabel,
+  title,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  activeItem?: boolean;
+  tone?: "slate" | "amber";
+  ariaLabel?: string;
+  title?: string;
+}) {
+  const toneClass =
+    tone === "amber"
+      ? activeItem
+        ? "border-[#ead8b3] bg-[#fff8ea] text-[#b45309]"
+        : "border-transparent text-slate-700 hover:border-[#ead8b3] hover:bg-[#fff8ea] hover:text-[#b45309]"
+      : activeItem
+      ? "border-[#6d5efc]/22 bg-[#f3f1ff] text-slate-900"
+      : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title || label}
+      aria-label={ariaLabel || label}
+      className={cn("flex items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition", toneClass)}
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
+        {icon}
+      </span>
+      <span className="text-[14px] leading-none">{label}</span>
+    </button>
+  );
 }
 
 export default function AdminLayout({
@@ -33,100 +86,131 @@ export default function AdminLayout({
     .map((x) => x[0]?.toUpperCase() || "")
     .join("") || "U";
 
-  const SignOutIcon = ({ size = 16 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  const nonAdminNav =
+    !isAdmin ? (
+      <aside className="sticky top-[22px] self-start">
+        <div className="flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => nav("/dashboard")}
+              className="flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
+            >
+              <img
+                src={faviconIcon}
+                alt="TaskFlow"
+                className="h-12 w-12 rounded-[18px] object-cover shadow-[0_10px_25px_rgba(15,23,42,0.08)]"
+              />
+              <div className="min-w-0">
+                <div className="truncate text-[17px] font-black tracking-[-0.3px] text-slate-900">TaskFlow</div>
+              </div>
+            </button>
+
+            <div className="flex flex-col gap-2">
+              <NavItem
+                activeItem={active === "dashboard"}
+                label="Dashboard"
+                onClick={() => nav("/dashboard")}
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                    <path d="M4 12c0-4.42 3.58-8 8-8h8v8c0 4.42-3.58 8-8 8H4v-8Z" stroke="#6d5efc" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M12 4v8h8" stroke="#6d5efc" strokeWidth="2" strokeLinejoin="round" />
+                  </svg>
+                }
+              />
+              <NavItem
+                activeItem={active === "boards"}
+                label="Boards"
+                onClick={() => nav("/admin/boards")}
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                    <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
+                    <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                }
+              />
+              <NavItem
+                activeItem={active === "meetings"}
+                label="Meetings"
+                onClick={() => nav("/calendar")}
+                ariaLabel="Open meetings calendar"
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                    <path d="M7 3v3M17 3v3M4 9h16" stroke="#6d5efc" strokeWidth="2" strokeLinecap="round" />
+                    <rect x="4" y="5" width="16" height="15" rx="3" stroke="#6d5efc" strokeWidth="2" />
+                    <path d="M8 13h3v3H8z" fill="#6d5efc" />
+                  </svg>
+                }
+              />
+              <NavItem
+                activeItem={active === "notifications"}
+                label="Notifications"
+                onClick={() => nav("/notifications")}
+                ariaLabel="Open notifications"
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                    <path d="M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 1 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4Z" stroke="#6d5efc" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M10 20a2 2 0 0 0 4 0" stroke="#6d5efc" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                }
+              />
+            </div>
+          </div>
+
+          <div className="mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
+            <button
+              type="button"
+              onClick={() => nav("/profile")}
+              className="flex min-w-0 items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50"
+              title="Open profile"
+              aria-label="Open profile"
+            >
+              <div className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-[#e8ecff] text-[11px] font-extrabold text-[#6d5efc]">
+                {profileInitials}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
+                <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              title="Log out"
+              aria-label="Log out"
+              className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
+                <SignOutIcon size={15} />
+              </span>
+              <span className="text-[14px] leading-none">Log out</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+    ) : null;
 
   return (
     <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
-      <div className={cn("grid min-h-screen", isAdmin ? "grid-cols-[280px_1fr] max-[1050px]:grid-cols-1" : "grid-cols-1")}>
+      <div
+        className={cn(
+          "grid min-h-screen",
+          isAdmin
+            ? "grid-cols-[280px_1fr] max-[1050px]:grid-cols-1"
+            : "grid-cols-[242px_1fr] gap-5 max-[1050px]:grid-cols-1"
+        )}
+      >
         {isAdmin ? <AdminSidebar active={active} /> : null}
+        {!isAdmin ? nonAdminNav : null}
 
-        <main className="p-[22px]">
-          <header className="mb-4 grid gap-3 max-[1050px]:grid-cols-1" style={isAdmin ? undefined : { gridTemplateColumns: "1fr auto 1fr" }}>
+        <main className={cn("p-[22px]", !isAdmin ? "pl-0 max-[1050px]:pl-[22px]" : "")}>
+          <header className="mb-4 flex items-start justify-between gap-3 max-[1050px]:flex-col">
             <div>
               <div className="text-[13px] font-bold text-slate-500">Welcome back</div>
-
               <div className="mt-1 text-[28px] font-black tracking-[-0.6px]">{title}</div>
-
-              {subtitle ? (
-                <div className="mt-1 text-[14px] font-semibold text-slate-500">{subtitle}</div>
-              ) : null}
+              {subtitle ? <div className="mt-1 text-[14px] font-semibold text-slate-500">{subtitle}</div> : null}
             </div>
-
-            {!isAdmin && active !== "profile" ? (
-              <div className="flex items-center justify-center max-[1050px]:order-3">
-                <div className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur">
-                  <button
-                    type="button"
-                    onClick={() => nav("/admin/boards")}
-                    className="relative grid h-11 w-11 place-items-center rounded-full border border-[#bfd7ff] bg-[#e8f1ff] font-black text-[#334155] transition hover:-translate-y-[1px] hover:border-[#93c5fd] hover:bg-[#dbeafe]"
-                    title="Boards"
-                    aria-label="Open boards"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                      <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
-                      <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => nav("/calendar")}
-                    className="relative grid h-11 w-11 place-items-center rounded-full border border-[#d9c8a8] bg-[#fff4de] font-black text-[#334155] transition hover:-translate-y-[1px] hover:border-[#d8b56f] hover:bg-[#ffefcf]"
-                    title="Meetings calendar"
-                    aria-label="Open meetings calendar"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                      <path d="M7 3v3M17 3v3M4 9h16" stroke="#b45309" strokeWidth="2" strokeLinecap="round" />
-                      <rect x="4" y="5" width="16" height="15" rx="3" stroke="#b45309" strokeWidth="2" />
-                      <path d="M8 13h3v3H8z" fill="#f59e0b" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => nav("/notifications")}
-                    className="relative grid h-11 w-11 place-items-center rounded-full border border-[#f2d7ad] bg-[#fff7e8] font-black text-[#334155] transition hover:-translate-y-[1px] hover:border-[#f0bf6b] hover:bg-[#fff1d5]"
-                    title="Notifications"
-                    aria-label="Open notifications"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                      <path d="M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 1 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4Z" stroke="#d97706" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M10 20a2 2 0 0 0 4 0" stroke="#d97706" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => nav("/profile")}
-                    className="relative grid h-11 w-11 place-items-center rounded-full border border-[#cfc4ff] bg-[#e9e2ff] font-black text-[#334155] transition hover:-translate-y-[1px] hover:border-[#b8a8ff] hover:bg-[#e3d9ff]"
-                    title="Profile"
-                    aria-label="Open profile"
-                  >
-                    <span className="text-[18px] tracking-[-0.02em]">{profileInitials}</span>
-                    <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border border-slate-200 bg-white shadow-sm">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="8" r="4.5" stroke="#7c3aed" strokeWidth="2" />
-                        <path d="M12 12.5V21M8 17h8" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={logout}
-                    title="Log out"
-                    aria-label="Log out"
-                    className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:-translate-y-[1px] hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <SignOutIcon size={15} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              !isAdmin ? <div /> : null
-            )}
 
             <div className="flex items-center gap-2 justify-end max-[1050px]:w-full">
               {right}

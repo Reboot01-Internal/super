@@ -472,7 +472,7 @@ export default function MeetingsCalendarPage() {
     <>
       {confirmDialog}
       <AdminLayout
-        active={isEffectiveAdmin ? "meetings" : "boards"}
+        active="meetings"
         title={titleForRole(effectiveRole)}
         subtitle={subtitleForRole(effectiveRole)}
         right={

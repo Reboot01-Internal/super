@@ -99,7 +99,7 @@ export default function NotificationsPage() {
 
   return (
     <AdminLayout
-      active={isAdmin ? "notifications" : "boards"}
+      active="notifications"
       title="Notifications"
       subtitle="Meeting reminders, schedule changes, and updates in one place."
     >

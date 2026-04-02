@@ -14,6 +14,7 @@ import AdminReportsPage from "./pages/AdminReportsPage";
 import MeetingsCalendarPage from "./pages/MeetingsCalendarPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import BoardMeetingsPage from "./pages/BoardMeetingsPage";
+import UserDashboardPage from "./pages/UserDashboardPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -65,11 +66,7 @@ export default function App() {
 
       <Route
         path="/dashboard"
-        element={
-          <RequireAuth>
-            <Navigate to="/admin/boards" />
-          </RequireAuth>
-        }
+        element={<RequireBoardsAccess><UserDashboardPage /></RequireBoardsAccess>}
       />
 
       <Route
