@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import placeholder from "../placeholder.png";
+import placeholder from "../reboot.JPG";
+import logo from "./logo.png";
 
 const AUTH_URL = "https://learn.reboot01.com/api/auth/signin";
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
@@ -257,7 +258,24 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-900/45 to-[#6d5efc]/40" />
             <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.7) 1px, transparent 0)", backgroundSize: "20px 20px" }} />
 
-            <div className="relative z-10 flex h-full flex-col justify-between">
+            <div className="absolute left-5 top-5 z-10 sm:left-6 sm:top-6">
+              <img
+                src={logo}
+                alt="TaskFlow logo"
+                className="h-16 w-auto drop-shadow-[0_18px_30px_rgba(15,23,42,0.22)] sm:h-20"
+              />
+            </div>
+
+            <div className="absolute bottom-8 left-6 z-10 text-left text-white drop-shadow-[0_12px_24px_rgba(15,23,42,0.28)] sm:bottom-10 sm:left-8">
+              <div className="text-[15px] font-bold tracking-[-0.02em] text-white/88 sm:text-[17px]">
+                Welcome to
+              </div>
+              <div className="mt-1 text-[30px] font-black tracking-[-0.05em] sm:text-[38px]">
+                TaskFlow
+              </div>
+            </div>
+
+            {/* <div className="relative z-10 flex h-full flex-col justify-between">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-[12px] font-extrabold text-white backdrop-blur-md">
                 <span className="h-2 w-2 rounded-full bg-[#b7adff]" />
                 TaskFlow Workspace
@@ -273,7 +291,7 @@ export default function LoginPage() {
                   One clean workspace for admins, supervisors, and students.
                 </p>
               </div>
-            </div>
+            </div> */}
           </section>
 
           <section className="grid place-items-center p-6 sm:p-8 lg:p-10">
@@ -316,9 +334,9 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-6 border-t border-slate-200 pt-4 text-center text-xs font-semibold text-slate-400">
+              {/* <div className="mt-6 border-t border-slate-200 pt-4 text-center text-xs font-semibold text-slate-400">
                 © {new Date().getFullYear()} TaskFlow
-              </div>
+              </div> */}
             </div>
           </section>
         </div>
