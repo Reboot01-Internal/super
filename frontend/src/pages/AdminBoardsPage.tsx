@@ -417,50 +417,23 @@ export default function AdminBoardsPage() {
     >
       <div className="w-full">
         {/* Toolbar */}
-        <div className="mb-4 flex items-start justify-between gap-3 max-[1020px]:flex-col">
-          {/* Search */}
-          <div className="flex-1 min-w-[340px] grid gap-3 max-[1020px]:min-w-0">
-            <div
-              className="
-                flex items-center gap-2.5
-                rounded-2xl border border-slate-900/10
-                bg-white/92 shadow-[0_10px_26px_rgba(15,23,42,0.06)]
-                px-3 py-2.5
-                focus-within:border-[#6d5efc]/30 focus-within:ring-4 focus-within:ring-[#6d5efc]/12
-              "
-            >
-              <span
-                className="
-                  grid place-items-center h-9 w-9 rounded-xl
-                  border border-slate-900/10 bg-slate-900/3 text-slate-900/55
-                "
-                aria-hidden="true"
-              >
+        <div className="mb-4 flex items-center justify-between gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
+          <div className="flex min-w-0 flex-[1.35] items-center gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
+            <div className="flex h-14 min-w-[520px] flex-1 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[1180px]:min-w-0">
+              <span className="text-slate-400" aria-hidden="true">
                 <SearchIcon />
               </span>
 
               <input
-                className="
-                  flex-1 bg-transparent outline-none
-                  text-[14px] font-extrabold text-slate-900/90
-                  placeholder:text-slate-900/40 placeholder:font-bold
-                "
-                placeholder="Search boards, supervisors, or descriptions…"
+                className="flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
+                placeholder="Search boards, supervisors, or descriptions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
 
               {search.trim() && (
                 <button
-                  className="
-                    h-9 px-3 rounded-xl
-                    border border-slate-900/12 bg-white/90
-                    font-black text-slate-900/70
-                    transition
-                    hover:-translate-y-[1px]
-                    hover:border-slate-900/18
-                    hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]
-                  "
+                  className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-[11px] font-black text-slate-500 transition hover:border-slate-300 hover:bg-white hover:text-slate-700"
                   type="button"
                   onClick={() => setSearch("")}
                 >
@@ -469,14 +442,14 @@ export default function AdminBoardsPage() {
               )}
             </div>
 
-            <div className="flex w-fit items-center gap-2">
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-[#6d5efc]/18 bg-white/90 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
+            <div className="flex w-fit items-center gap-2 max-[1180px]:w-full">
+              <div className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
                 <button
                   className={[
                     "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
                     viewMode === "boards"
-                      ? "bg-[#6d5efc] text-white shadow-[0_10px_24px_rgba(109,94,252,0.28)]"
-                      : "text-slate-600 hover:bg-[#f4f1ff] hover:text-[#6d5efc]",
+                      ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                   ].join(" ")}
                   type="button"
                   onClick={() => setViewMode("boards")}
@@ -488,8 +461,8 @@ export default function AdminBoardsPage() {
                   className={[
                     "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
                     viewMode === "lists"
-                      ? "bg-[#6d5efc] text-white shadow-[0_10px_24px_rgba(109,94,252,0.28)]"
-                      : "text-slate-600 hover:bg-[#f4f1ff] hover:text-[#6d5efc]",
+                      ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                   ].join(" ")}
                   type="button"
                   onClick={() => setViewMode("lists")}
@@ -503,18 +476,18 @@ export default function AdminBoardsPage() {
                 <button
                   type="button"
                   onClick={() => nav("/workspace")}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#6d5efc]/20 bg-white/90 text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/30 hover:bg-[#f4f1ff]"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
                   title="Workspace"
                   aria-label="Open workspace"
                 >
                   <BoardIcon size={16} />
+                  Workspace
                 </button>
               ) : null}
             </div>
           </div>
 
-          {/* KPIs */}
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="flex flex-wrap justify-end gap-2.5 max-[1180px]:justify-start">
             <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
             <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
             <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />
@@ -561,21 +534,6 @@ export default function AdminBoardsPage() {
             <div className="text-[13px] font-extrabold text-slate-900/58">
               Try searching by <b>board name</b> or <b>supervisor</b>.
             </div>
-
-            {search.trim() && (
-              <button
-                className="
-                  mt-2 inline-flex h-11 items-center justify-center
-                  rounded-2xl px-4 font-black text-white
-                  bg-gradient-to-br from-violet-600 to-violet-400
-                  shadow-[0_18px_45px_rgba(15,23,42,0.08)]
-                  hover:opacity-95
-                "
-                onClick={() => setSearch("")}
-              >
-                Clear search
-              </button>
-            )}
           </div>
         ) : viewMode === "boards" ? (
           <div className="grid grid-cols-3 gap-3 max-[1200px]:grid-cols-2 max-[780px]:grid-cols-1">
