@@ -754,12 +754,23 @@ export default function AdminUsersPage() {
             type="button"
             onClick={() => setDeleteMode((prev) => !prev)}
             className={[
-              "inline-flex h-10 items-center rounded-full border px-4 text-[13px] font-black transition",
+              "inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-[13px] font-black shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition",
               deleteMode
-                ? "border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
-                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+                ? "border-rose-200 bg-[linear-gradient(180deg,#fff8f8_0%,#fff1f2_100%)] text-rose-600 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50"
+                : "border-[#6d5efc]/18 bg-white text-slate-700 hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]",
             ].join(" ")}
           >
+            <span
+              className={[
+                "grid h-7 w-7 place-items-center rounded-full border text-[14px] transition",
+                deleteMode
+                  ? "border-rose-200 bg-white text-rose-500"
+                  : "border-[#6d5efc]/18 bg-[#f7f5ff] text-[#6d5efc]",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              {deleteMode ? "x" : "!"}
+            </span>
             {deleteMode ? "Done selecting" : "Select users to delete"}
           </button>
 
@@ -769,7 +780,7 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={selectAllVisibleUsers}
                 disabled={rows.length === 0}
-                className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Select all
               </button>
@@ -777,7 +788,7 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={clearSelectedUsers}
                 disabled={selectedUserIds.size === 0}
-                className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Clear
               </button>
@@ -785,7 +796,7 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={deleteSelectedUsers}
                 disabled={selectedUserIds.size === 0 || deletingUsers}
-                className="inline-flex h-10 items-center rounded-full border border-rose-200 bg-white px-4 text-[13px] font-black text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex h-11 items-center rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
               >
                 {deletingUsers ? "Deleting..." : `Delete selected ${selectedUserIds.size}`}
               </button>
