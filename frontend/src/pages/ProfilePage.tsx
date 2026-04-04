@@ -781,7 +781,7 @@ export default function ProfilePage() {
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     className="mt-3 min-h-[180px] w-full rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-[#6d5efc]/35 focus:ring-4 focus:ring-[#6d5efc]/10"
-                    placeholder="Write what this student is like to work with, how they learn, how they communicate, and anything admins or supervisors should know when viewing this profile."
+                    placeholder="Add a note about this student."
                   />
                   <div className="mt-3 flex flex-wrap items-end justify-between gap-3 sm:flex-nowrap">
                     <div className="max-w-[220px] text-[11px] font-bold leading-5 text-slate-500">
