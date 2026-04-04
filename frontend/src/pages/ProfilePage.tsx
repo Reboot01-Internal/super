@@ -3,8 +3,10 @@ import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
 import { SkeletonBlock } from "../components/Skeleton";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { fetchRebootAvatar } from "../lib/rebootAvatars";
 
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
 const BAHRAIN_TIMEZONE = "Asia/Bahrain";
@@ -64,6 +66,7 @@ type RebootProfile = {
     lastName?: string;
     login?: string;
     gender?: string;
+    avatarUrl?: string;
     auditRatio?: number;
     totalUp?: number;
     totalDown?: number;
@@ -197,8 +200,9 @@ async function loadRebootProfile(login: string, jwt: string): Promise<RebootProf
   const xpRaw = Number(json?.data?.transaction_aggregate?.aggregate?.sum?.amount);
 
   const gender = await loadRebootGender(login, jwt);
+  const avatarUrl = jwt ? await fetchRebootAvatar(login) : "";
 
-  const mergedUser = gender ? { ...user, gender } : user;
+  const mergedUser = { ...user, ...(gender ? { gender } : {}), ...(avatarUrl ? { avatarUrl } : {}) };
   return {
     user: mergedUser,
     level,
@@ -480,7 +484,7 @@ export default function ProfilePage() {
 
           <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
             <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)]">
-              <AvatarPlaceholder name={displayName} gender={genderNormalized} />
+              <AvatarPlaceholder name={displayName} gender={genderNormalized} avatarUrl={rebootProfile?.user?.avatarUrl} />
               <div className="min-w-0">
                 <div className="truncate text-[26px] font-black tracking-[-0.02em] text-slate-900">{displayName}</div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-slate-600">
@@ -867,7 +871,15 @@ function SnapshotItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AvatarPlaceholder({ name, gender }: { name: string; gender: "male" | "female" | "unspecified" }) {
+function AvatarPlaceholder({
+  name,
+  gender,
+  avatarUrl,
+}: {
+  name: string;
+  gender: "male" | "female" | "unspecified";
+  avatarUrl?: string;
+}) {
   const isFemale = gender === "female";
   const tone = isFemale
     ? "from-[#ffe4ef] via-[#f0e6ff] to-[#e2e8ff]"
@@ -875,7 +887,14 @@ function AvatarPlaceholder({ name, gender }: { name: string; gender: "male" | "f
 
   return (
     <div className={`relative grid h-20 w-20 flex-none place-items-center rounded-full border border-slate-200 bg-gradient-to-br ${tone}`}>
-      <div className="text-[22px] font-black text-slate-700">{initials(name)}</div>
+      <UserAvatar
+        src={avatarUrl}
+        alt={name}
+        fallback={initials(name)}
+        sizeClass="h-full w-full"
+        textClass="text-[22px]"
+        className={`border-0 bg-gradient-to-br ${tone}`}
+      />
       <div className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-white bg-white shadow-sm">
         <GenderIcon gender={gender} />
       </div>

@@ -3,8 +3,10 @@ import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
 import { SkeletonBlock } from "../components/Skeleton";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type Member = {
   user_id: number;
@@ -221,6 +223,7 @@ export default function BoardMembersPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">("student");
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
 
   const [selectedResultIds, setSelectedResultIds] = useState<Set<number>>(new Set());
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<number>>(new Set());
@@ -257,6 +260,33 @@ export default function BoardMembersPage() {
       setBoardName("");
     }
   }
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = [...results, ...members]
+        .map((user) => user.nickname || user.email.split("@")[0])
+        .filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [results, members]);
 
   useEffect(() => {
     if (!boardID || Number.isNaN(boardID)) return;
@@ -545,6 +575,7 @@ export default function BoardMembersPage() {
                 <div className="grid gap-2.5">
                   {results.map((u) => {
                     const checked = selectedResultIds.has(u.id);
+                    const avatarUrl = avatarByLogin[String(u.nickname || u.email.split("@")[0]).toLowerCase()] || "";
                     return (
                       <RowCard
                         key={u.id}
@@ -562,9 +593,7 @@ export default function BoardMembersPage() {
                               }}
                               className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
                             />
-                            <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                              {initials(u.full_name)}
-                            </div>
+                            <UserAvatar src={avatarUrl} alt={u.full_name} fallback={initials(u.full_name)} className="bg-slate-50" />
 
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-slate-900">{u.full_name}</div>
@@ -643,6 +672,7 @@ export default function BoardMembersPage() {
                   {members.map((m) => {
                     const isOwner = (m.role_in_board || "").toLowerCase() === "owner";
                     const checked = selectedMemberIds.has(m.user_id);
+                    const avatarUrl = avatarByLogin[String(m.nickname || m.email.split("@")[0]).toLowerCase()] || "";
                     return (
                       <label
                         key={m.user_id}
@@ -665,9 +695,7 @@ export default function BoardMembersPage() {
                           }}
                           className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400 disabled:opacity-40"
                         />
-                        <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                          {initials(m.full_name)}
-                        </div>
+                        <UserAvatar src={avatarUrl} alt={m.full_name} fallback={initials(m.full_name)} className="bg-slate-50" />
 
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>

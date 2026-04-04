@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 // import "../admin.css";
 
 type User = {
@@ -92,6 +94,7 @@ export default function AssignPage() {
   const [supervisors, setSupervisors] = useState<User[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [assigned, setAssigned] = useState<User[]>([]);
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
 
   const [selectedSup, setSelectedSup] = useState<User | null>(null);
 
@@ -145,6 +148,33 @@ export default function AssignPage() {
   useEffect(() => {
     loadBase();
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = [...supervisors, ...students, ...assigned]
+        .map((user) => user.nickname || user.email.split("@")[0])
+        .filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [supervisors, students, assigned]);
 
   useEffect(() => {
     if (selectedSup) {
@@ -363,6 +393,7 @@ export default function AssignPage() {
             <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
               {visibleSupervisors.map((s) => {
                 const active = selectedSup?.id === s.id;
+                const avatarUrl = avatarByLogin[String(s.nickname || s.email.split("@")[0]).toLowerCase()] || "";
                 return (
                   <button
                     key={s.id}
@@ -377,9 +408,7 @@ export default function AssignPage() {
                         : "border-slate-200/70"
                     )}
                   >
-                    <div className="grid h-11 w-11 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                      {initialsOf(s.full_name)}
-                    </div>
+                    <UserAvatar src={avatarUrl} alt={s.full_name} fallback={initialsOf(s.full_name)} sizeClass="h-11 w-11" className="bg-slate-50" />
 
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>
@@ -484,6 +513,7 @@ export default function AssignPage() {
               <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                 {visibleStudents.map((s) => {
                   const checked = selectedStuIds.has(s.id);
+                  const avatarUrl = avatarByLogin[String(s.nickname || s.email.split("@")[0]).toLowerCase()] || "";
                   return (
                     <label
                       key={s.id}
@@ -496,9 +526,7 @@ export default function AssignPage() {
                     >
                       <input type="checkbox" checked={checked} onChange={() => toggleStudent(s.id)} className="h-4 w-4" />
 
-                      <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                        {initialsOf(s.full_name)}
-                      </div>
+                      <UserAvatar src={avatarUrl} alt={s.full_name} fallback={initialsOf(s.full_name)} className="bg-slate-50" />
 
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>
@@ -613,6 +641,7 @@ export default function AssignPage() {
               <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                 {visibleAssigned.map((s) => {
                   const checked = selectedAssignedIds.has(s.id);
+                  const avatarUrl = avatarByLogin[String(s.nickname || s.email.split("@")[0]).toLowerCase()] || "";
                   return (
                   <label
                     key={s.id}
@@ -630,9 +659,7 @@ export default function AssignPage() {
                         onChange={() => toggleAssigned(s.id)}
                         className="h-4 w-4 flex-none"
                       />
-                      <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
-                        {initialsOf(s.full_name)}
-                      </div>
+                      <UserAvatar src={avatarUrl} alt={s.full_name} fallback={initialsOf(s.full_name)} className="bg-slate-50" />
 
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>

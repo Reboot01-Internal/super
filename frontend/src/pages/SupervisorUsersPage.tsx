@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type AssignedStudent = {
   id: number;
@@ -39,6 +41,7 @@ export default function SupervisorUsersPage() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<AssignedStudent[]>([]);
   const [totalAssigned, setTotalAssigned] = useState(0);
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -66,6 +69,31 @@ export default function SupervisorUsersPage() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = rows.map((row) => row.nickname || row.email.split("@")[0]).filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [rows]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -111,42 +139,43 @@ export default function SupervisorUsersPage() {
           </div>
         ) : (
           <div className="grid gap-2 lg:grid-cols-2">
-            {filtered.map((u) => (
-              <article
-                key={u.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => nav(`/profile/${u.id}`, { state: { backTo: "/users" } })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    nav(`/profile/${u.id}`, { state: { backTo: "/users" } });
-                  }
-                }}
-                className="cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
-                    {initialsOf(u.full_name)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
-                    <div className="truncate text-[12px] font-semibold text-slate-500">{u.email}</div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
-                        {withAt(u.nickname)}
-                      </span>
-                      <span className="inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
-                        student
-                      </span>
-                      <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
-                        {u.boards?.length || 0} board{(u.boards?.length || 0) === 1 ? "" : "s"}
-                      </span>
+            {filtered.map((u) => {
+              const avatarUrl = avatarByLogin[String(u.nickname || u.email.split("@")[0]).toLowerCase()] || "";
+              return (
+                <article
+                  key={u.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => nav(`/profile/${u.id}`, { state: { backTo: "/users" } })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      nav(`/profile/${u.id}`, { state: { backTo: "/users" } });
+                    }
+                  }}
+                  className="cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
+                >
+                  <div className="flex items-start gap-3">
+                    <UserAvatar src={avatarUrl} alt={u.full_name} fallback={initialsOf(u.full_name)} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
+                      <div className="truncate text-[12px] font-semibold text-slate-500">{u.email}</div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
+                          {withAt(u.nickname)}
+                        </span>
+                        <span className="inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
+                          student
+                        </span>
+                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
+                          {u.boards?.length || 0} board{(u.boards?.length || 0) === 1 ? "" : "s"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

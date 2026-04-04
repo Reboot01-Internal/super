@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
+import UserAvatar from "./UserAvatar";
 import { useAuth } from "../lib/auth";
 import faviconIcon from "/favicon-icon.png";
+import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
@@ -78,6 +80,8 @@ export default function AdminLayout({
   const nav = useNavigate();
   const { isAdmin, isSupervisor, login, email, logout } = useAuth();
   const baseName = login || email || "User";
+  const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
+  const [avatarUrl, setAvatarUrl] = useState(() => getCachedRebootAvatar(avatarLogin));
   const profileInitials = baseName
     .replace(/^@/, "")
     .split(/[\s._-]+/)
@@ -85,6 +89,29 @@ export default function AdminLayout({
     .slice(0, 2)
     .map((x) => x[0]?.toUpperCase() || "")
     .join("") || "U";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvatar() {
+      const nextLogin = avatarLogin;
+      if (!nextLogin) {
+        setAvatarUrl("");
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatar(nextLogin);
+        if (!cancelled && next !== avatarUrl) setAvatarUrl(next);
+      } catch {
+        if (!cancelled) setAvatarUrl("");
+      }
+    }
+
+    void loadAvatar();
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarLogin, avatarUrl]);
 
   const nonAdminNav =
     !isAdmin ? (
@@ -180,9 +207,14 @@ export default function AdminLayout({
               title="Open profile"
               aria-label="Open profile"
             >
-              <div className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-[#e8ecff] text-[11px] font-extrabold text-[#6d5efc]">
-                {profileInitials}
-              </div>
+              <UserAvatar
+                src={avatarUrl}
+                alt={baseName}
+                fallback={profileInitials}
+                sizeClass="h-10 w-10"
+                textClass="text-[11px]"
+                className="bg-[#e8ecff] text-[#6d5efc]"
+              />
               <div className="min-w-0">
                 <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
                 <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>

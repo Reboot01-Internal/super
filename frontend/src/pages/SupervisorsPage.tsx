@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
+import UserAvatar from "../components/UserAvatar";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type SupervisorRow = {
   supervisor_user_id: number;
@@ -129,6 +131,7 @@ export default function SupervisorsPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "workspaces">("cards");
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
 
   async function load() {
     setErr("");
@@ -146,6 +149,31 @@ export default function SupervisorsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = data.map((row) => row.nickname || row.email.split("@")[0]).filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [data]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -265,6 +293,8 @@ export default function SupervisorsPage() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((s) => {
               const workspaceName = (s.nickname || "").trim() || s.full_name.split(/\s+/)[0] || "workspace";
+              const avatarUrl =
+                avatarByLogin[String((s.nickname || "").trim() || s.email.split("@")[0]).toLowerCase()] || "";
               return (
                 <button
                   key={s.supervisor_user_id}
@@ -295,6 +325,15 @@ export default function SupervisorsPage() {
                   </div>
 
                   <div className="mt-2.5">
+                    <div className="mb-2 flex justify-center">
+                      <UserAvatar
+                        src={avatarUrl}
+                        alt={s.full_name}
+                        fallback={initials(s.full_name)}
+                        sizeClass="h-11 w-11"
+                        className="bg-slate-100"
+                      />
+                    </div>
                     <div className="text-[14px] font-black text-slate-900">{s.full_name}</div>
                     <div className="mt-0.5 text-[11px] font-bold text-[#8d82ff]">
                       @{(s.nickname || "").trim() || s.email.split("@")[0]}
@@ -306,56 +345,61 @@ export default function SupervisorsPage() {
           </div>
         ) : (
           <div className="grid gap-2.5">
-            {filtered.map((s) => (
-              <button
-                key={s.supervisor_user_id}
-                onClick={() => nav(`/admin/files/${s.file_id}`)}
-                title="Open workspace"
-                className="group flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-violet-200 hover:bg-violet-50/30 hover:shadow-[0_16px_32px_rgba(109,94,252,0.12)] active:translate-y-0 active:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  {/* Avatar */}
-                  <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-100 font-black text-slate-700">
-                    {initials(s.full_name)}
+            {filtered.map((s) => {
+              const avatarUrl =
+                avatarByLogin[String((s.nickname || "").trim() || s.email.split("@")[0]).toLowerCase()] || "";
+              return (
+                <button
+                  key={s.supervisor_user_id}
+                  onClick={() => nav(`/admin/files/${s.file_id}`)}
+                  title="Open workspace"
+                  className="group flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-violet-200 hover:bg-violet-50/30 hover:shadow-[0_16px_32px_rgba(109,94,252,0.12)] active:translate-y-0 active:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <UserAvatar
+                      src={avatarUrl}
+                      alt={s.full_name}
+                      fallback={initials(s.full_name)}
+                      sizeClass="h-11 w-11"
+                      className="bg-slate-100"
+                    />
+
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">
+                        {s.full_name}
+                      </div>
+
+                      <div className="mt-0.5 truncate text-xs font-extrabold text-[#6d5efc]">
+                        @{(s.nickname || "").trim() || s.email.split("@")[0]}
+                      </div>
+
+                      <div className="mt-1.5 flex min-w-0 flex-wrap gap-2">
+                        <span className="inline-flex max-w-full items-center gap-2 truncate rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1 text-xs font-black text-slate-900">
+                          <ShieldCheckIcon /> supervisor
+                        </span>
+
+                        <span className="inline-flex max-w-full items-center gap-2 truncate rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-extrabold text-slate-600">
+                          <MailIcon /> <span className="truncate">{s.email}</span>
+                        </span>
+
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-extrabold text-slate-600">
+                          <FolderIcon /> Workspace
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Text */}
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-slate-900">
-                      {s.full_name}
-                    </div>
-
-                    <div className="mt-0.5 truncate text-xs font-extrabold text-[#6d5efc]">
-                      @{(s.nickname || "").trim() || s.email.split("@")[0]}
-                    </div>
-
-                    <div className="mt-1.5 flex min-w-0 flex-wrap gap-2">
-                      <span className="inline-flex max-w-full items-center gap-2 truncate rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1 text-xs font-black text-slate-900">
-                        <ShieldCheckIcon /> supervisor
-                      </span>
-
-                      <span className="inline-flex max-w-full items-center gap-2 truncate rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-extrabold text-slate-600">
-                        <MailIcon /> <span className="truncate">{s.email}</span>
-                      </span>
-
-                      <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-extrabold text-slate-600">
-                        <FolderIcon /> Workspace
-                      </span>
-                    </div>
+                  <div className="flex flex-none items-center gap-2">
+                    <span className="inline-flex items-center justify-center rounded-full border border-violet-200 bg-violet-100/60 px-3 py-1 text-xs font-black text-violet-700">
+                      Open
+                    </span>
+                    <span className="text-2xl font-semibold text-slate-300 transition group-hover:translate-x-[2px] group-hover:text-violet-400">
+                      ›
+                    </span>
                   </div>
-                </div>
-
-                {/* Right */}
-                <div className="flex flex-none items-center gap-2">
-                  <span className="inline-flex items-center justify-center rounded-full border border-violet-200 bg-violet-100/60 px-3 py-1 text-xs font-black text-violet-700">
-                    Open
-                  </span>
-                  <span className="text-2xl font-semibold text-slate-300 transition group-hover:translate-x-[2px] group-hover:text-violet-400">
-                    ›
-                  </span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

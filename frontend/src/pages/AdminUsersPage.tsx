@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { useConfirm } from "../lib/useConfirm";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type UserRow = {
   id: number;
@@ -275,6 +277,25 @@ function MinusIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function XIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BinIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 10v6M14 10v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function RoleIcon({ role }: { role: CreateRole }) {
   if (role === "supervisor") {
     return (
@@ -321,6 +342,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState("");
   const [role, setRole] = useState<"all" | "supervisor" | "student">("all");
   const [rows, setRows] = useState<UserRow[]>([]);
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
@@ -376,6 +398,31 @@ export default function AdminUsersPage() {
       });
       return next;
     });
+  }, [rows]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = rows.map((row) => row.nickname).filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
   }, [rows]);
 
   useEffect(() => {
@@ -856,7 +903,7 @@ export default function AdminUsersPage() {
               "inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-[13px] font-black shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition",
               deleteMode
                 ? "border-rose-200 bg-[linear-gradient(180deg,#fff8f8_0%,#fff1f2_100%)] text-rose-600 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50"
-                : "border-[#6d5efc]/18 bg-white text-slate-700 hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]",
+                : "border-rose-200 bg-white text-rose-500 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
             ].join(" ")}
           >
             <span
@@ -864,13 +911,13 @@ export default function AdminUsersPage() {
                 "grid h-7 w-7 place-items-center rounded-full border text-[14px] transition",
                 deleteMode
                   ? "border-rose-200 bg-white text-rose-500"
-                  : "border-[#6d5efc]/18 bg-[#f7f5ff] text-[#6d5efc]",
+                  : "border-rose-200 bg-rose-50 text-rose-500",
               ].join(" ")}
               aria-hidden="true"
             >
-              {deleteMode ? "x" : "!"}
+              {deleteMode ? <XIcon size={14} /> : <BinIcon size={14} />}
             </span>
-            {deleteMode ? "Done selecting" : "Select users to delete"}
+            {deleteMode ? null : "Select users to delete"}
           </button>
 
           {deleteMode ? (
@@ -895,9 +942,16 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={deleteSelectedUsers}
                 disabled={selectedUserIds.size === 0 || deletingUsers}
-                className="inline-flex h-11 items-center rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                className="inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {deletingUsers ? "Deleting..." : `Delete selected ${selectedUserIds.size}`}
+                {deletingUsers ? (
+                  "Deleting..."
+                ) : (
+                  <>
+                    <BinIcon size={14} />
+                    <span>{selectedUserIds.size}</span>
+                  </>
+                )}
               </button>
             </>
           ) : null}
@@ -919,72 +973,73 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <div className="grid gap-2 lg:grid-cols-2">
-            {rows.map((u) => (
-              <article
-                key={u.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  if (deleteMode) {
-                    toggleUserSelection(u.id);
-                    return;
-                  }
-                  nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+            {rows.map((u) => {
+              const avatarUrl = avatarByLogin[String(u.nickname || "").trim().toLowerCase()] || "";
+              return (
+                <article
+                  key={u.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
                     if (deleteMode) {
                       toggleUserSelection(u.id);
                       return;
                     }
                     nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
-                  }
-                }}
-                className={[
-                  "rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
-                  deleteMode ? "cursor-pointer" : "cursor-pointer",
-                  deleteMode && selectedUserIds.has(u.id)
-                    ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
-                    : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
-                ].join(" ")}
-              >
-                <div className="flex items-start gap-3">
-                  {deleteMode ? (
-                    <label
-                      className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedUserIds.has(u.id)}
-                        onChange={() => toggleUserSelection(u.id)}
-                        className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
-                      />
-                    </label>
-                  ) : null}
-                  <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
-                    {initialsOf(u.full_name)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
-                    <div className="truncate text-[12px] font-semibold text-slate-500">{u.email}</div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
-                        {withAt(u.nickname)}
-                      </span>
-                      <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
-                        {u.role}
-                      </span>
-                      <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
-                        {normalizeCohort(u.cohort) || "No cohort"}
-                      </span>
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (deleteMode) {
+                        toggleUserSelection(u.id);
+                        return;
+                      }
+                      nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
+                    }
+                  }}
+                  className={[
+                    "rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
+                    deleteMode ? "cursor-pointer" : "cursor-pointer",
+                    deleteMode && selectedUserIds.has(u.id)
+                      ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
+                      : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start gap-3">
+                    {deleteMode ? (
+                      <label
+                        className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(u.id)}
+                          onChange={() => toggleUserSelection(u.id)}
+                          className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
+                        />
+                      </label>
+                    ) : null}
+                    <UserAvatar src={avatarUrl} alt={u.full_name} fallback={initialsOf(u.full_name)} sizeClass="h-11 w-11" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
+                      <div className="truncate text-[12px] font-semibold text-slate-500">{u.email}</div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
+                          {withAt(u.nickname)}
+                        </span>
+                        <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
+                          {u.role}
+                        </span>
+                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
+                          {normalizeCohort(u.cohort) || "No cohort"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

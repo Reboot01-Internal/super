@@ -1,8 +1,10 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import faviconIcon from "/favicon-icon.png";
+import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
+import UserAvatar from "./UserAvatar";
 
 type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications" };
 
@@ -14,6 +16,8 @@ export default function AdminSidebar({ active }: Props) {
   const nav = useNavigate();
   const { isAdmin, login, email, role, displayName, setDisplayName, logout } = useAuth();
   const fallbackName = login || email || "User";
+  const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
+  const [avatarUrl, setAvatarUrl] = useState(() => getCachedRebootAvatar(avatarLogin));
 
   useEffect(() => {
     if (displayName) return;
@@ -38,6 +42,29 @@ export default function AdminSidebar({ active }: Props) {
       cancelled = true;
     };
   }, [displayName, setDisplayName]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvatar() {
+      const nextLogin = avatarLogin;
+      if (!nextLogin) {
+        setAvatarUrl("");
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatar(nextLogin);
+        if (!cancelled && next !== avatarUrl) setAvatarUrl(next);
+      } catch {
+        if (!cancelled) setAvatarUrl("");
+      }
+    }
+
+    void loadAvatar();
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarLogin, avatarUrl]);
 
   const footerName = displayName || fallbackName;
   const footerSub = isAdmin ? "System access" : role || "workspace";
@@ -236,9 +263,14 @@ export default function AdminSidebar({ active }: Props) {
               title="Open profile"
               aria-label="Open profile"
             >
-              <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-slate-200 bg-[#e8ecff]">
-                <span className="text-[11px] font-extrabold text-[#6d5efc]">{initials}</span>
-              </div>
+              <UserAvatar
+                src={avatarUrl}
+                alt={footerName}
+                fallback={initials}
+                sizeClass="h-10 w-10"
+                textClass="text-[11px]"
+                className="bg-[#e8ecff] text-[#6d5efc]"
+              />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[13px] font-extrabold text-slate-900">{footerName}</div>
                 <div className="mt-0.5 truncate text-[12px] font-bold text-slate-500">{footerSub}</div>
