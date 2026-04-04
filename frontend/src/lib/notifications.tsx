@@ -67,6 +67,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setItems([]);
       setLoading(false);
       setError("");
+      recentIdsRef.current.clear();
       return;
     }
 
@@ -74,7 +75,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setError("");
     try {
       const res = await apiFetch("/admin/notifications");
-      setItems(Array.isArray(res) ? res : []);
+      const nextItems = Array.isArray(res) ? res : [];
+      for (const item of nextItems) {
+        if (!item.is_read) {
+          recentIdsRef.current.add(item.id);
+        }
+      }
+      setItems(nextItems);
     } catch (e: any) {
       setError(e?.message || "Failed to load notifications");
       setItems([]);

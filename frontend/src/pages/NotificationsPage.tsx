@@ -337,7 +337,7 @@ function NotificationCard({
       aria-label={item.title}
       className={`group relative overflow-hidden rounded-[20px] border px-4 py-3.5 transition ${tone.row} ${
         isNew
-          ? "border-amber-200 bg-[linear-gradient(180deg,#fffdf5,#fff8e8)] shadow-[0_14px_28px_rgba(245,158,11,0.12)]"
+          ? "border-violet-200 bg-[linear-gradient(180deg,#fcfaff,#f6f1ff)] shadow-[0_14px_28px_rgba(109,94,252,0.10)]"
           : item.is_read
           ? "border-transparent bg-transparent"
           : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#fbfcff)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]"
@@ -367,7 +367,7 @@ function NotificationCard({
 
           <div className="flex flex-wrap items-center gap-2">
             {isNew ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">
+              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-violet-700">
                 New
               </span>
             ) : null}
