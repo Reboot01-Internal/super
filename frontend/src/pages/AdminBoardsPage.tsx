@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { useEscClose } from "../components/Modal";
+import Modal, { useEscClose } from "../components/Modal";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
@@ -27,6 +27,23 @@ type BoardMember = {
 };
 
 type ViewMode = "boards" | "lists";
+
+type SupervisorOption = {
+  supervisor_user_id: number;
+  full_name: string;
+  email: string;
+  nickname?: string;
+  cohort?: string;
+  file_id: number;
+};
+
+type AssignedStudentOption = {
+  id: number;
+  full_name: string;
+  nickname?: string;
+  email: string;
+  cohort?: string;
+};
 
 function formatDate(iso: string) {
   if (!iso) return "—";
@@ -325,6 +342,17 @@ export default function AdminBoardsPage() {
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [membersBoard, setMembersBoard] = useState<BoardRow | null>(null);
   const [deletingBoardID, setDeletingBoardID] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creatingBoard, setCreatingBoard] = useState(false);
+  const [createBoardErr, setCreateBoardErr] = useState("");
+  const [supervisorOptions, setSupervisorOptions] = useState<SupervisorOption[]>([]);
+  const [supervisorsLoading, setSupervisorsLoading] = useState(false);
+  const [assignedStudents, setAssignedStudents] = useState<AssignedStudentOption[]>([]);
+  const [assignedStudentsLoading, setAssignedStudentsLoading] = useState(false);
+  const [boardName, setBoardName] = useState("");
+  const [boardDescription, setBoardDescription] = useState("");
+  const [selectedSupervisorID, setSelectedSupervisorID] = useState(0);
+  const [selectedMemberIDs, setSelectedMemberIDs] = useState<Set<number>>(new Set());
 
   const { isAdmin, isSupervisor } = useAuth();
 
@@ -352,11 +380,83 @@ export default function AdminBoardsPage() {
       alive = false;
     };
   }, [members]);
+
+  useEffect(() => {
+    if (!createOpen || !isAdmin) return;
+    let alive = true;
+
+    async function loadSupervisors() {
+      setSupervisorsLoading(true);
+      setCreateBoardErr("");
+      try {
+        const res = await apiFetch("/admin/supervisors");
+        if (!alive) return;
+        setSupervisorOptions(Array.isArray(res) ? (res as SupervisorOption[]) : []);
+      } catch (e: any) {
+        if (!alive) return;
+        setSupervisorOptions([]);
+        setCreateBoardErr(e?.message || "Failed to load supervisors");
+      } finally {
+        if (alive) setSupervisorsLoading(false);
+      }
+    }
+
+    void loadSupervisors();
+    return () => {
+      alive = false;
+    };
+  }, [createOpen, isAdmin]);
+
+  useEffect(() => {
+    if (!createOpen || !selectedSupervisorID) {
+      setAssignedStudents([]);
+      setSelectedMemberIDs(new Set());
+      return;
+    }
+    let alive = true;
+
+    async function loadAssignedStudents() {
+      setAssignedStudentsLoading(true);
+      setCreateBoardErr("");
+      try {
+        const res = await apiFetch(`/admin/assign/list?supervisor_id=${selectedSupervisorID}`);
+        if (!alive) return;
+        setAssignedStudents(Array.isArray(res) ? (res as AssignedStudentOption[]) : []);
+        setSelectedMemberIDs(new Set());
+      } catch (e: any) {
+        if (!alive) return;
+        setAssignedStudents([]);
+        setCreateBoardErr(e?.message || "Failed to load supervisor students");
+      } finally {
+        if (alive) setAssignedStudentsLoading(false);
+      }
+    }
+
+    void loadAssignedStudents();
+    return () => {
+      alive = false;
+    };
+  }, [createOpen, selectedSupervisorID]);
   const { confirm, dialog: confirmDialog } = useConfirm();
   const canManageMembers = isAdmin || isSupervisor;
   const canDeleteBoards = isAdmin || isSupervisor;
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
+  const closeCreateModal = useCallback(() => {
+    setCreateOpen(false);
+    setCreatingBoard(false);
+    setCreateBoardErr("");
+    setBoardName("");
+    setBoardDescription("");
+    setSelectedSupervisorID(0);
+    setAssignedStudents([]);
+    setSelectedMemberIDs(new Set());
+  }, []);
+
+  const selectedSupervisor = useMemo(
+    () => supervisorOptions.find((supervisor) => supervisor.supervisor_user_id === selectedSupervisorID) || null,
+    [selectedSupervisorID, supervisorOptions]
+  );
 
   async function load() {
     setLoading(true);
@@ -442,6 +542,55 @@ export default function AdminBoardsPage() {
     }
   }
 
+  function toggleSelectedMember(userID: number) {
+    setSelectedMemberIDs((prev) => {
+      const next = new Set(prev);
+      if (next.has(userID)) next.delete(userID);
+      else next.add(userID);
+      return next;
+    });
+  }
+
+  async function createBoard() {
+    if (!selectedSupervisor || !boardName.trim() || creatingBoard) return;
+
+    setCreatingBoard(true);
+    setCreateBoardErr("");
+    try {
+      const created = await apiFetch("/admin/boards", {
+        method: "POST",
+        body: JSON.stringify({
+          supervisor_file_id: selectedSupervisor.file_id,
+          name: boardName.trim(),
+          description: boardDescription.trim(),
+        }),
+      });
+
+      const boardID = Number(created?.id || 0);
+      if (!Number.isFinite(boardID) || boardID <= 0) {
+        throw new Error("Board created but no board id was returned.");
+      }
+
+      if (selectedMemberIDs.size > 0) {
+        await Promise.all(
+          Array.from(selectedMemberIDs).map((userID) =>
+            apiFetch("/admin/board-members", {
+              method: "POST",
+              body: JSON.stringify({ board_id: boardID, user_id: userID, role_in_board: "member" }),
+            })
+          )
+        );
+      }
+
+      await load();
+      closeCreateModal();
+    } catch (e: any) {
+      setCreateBoardErr(e?.message || "Failed to create board");
+    } finally {
+      setCreatingBoard(false);
+    }
+  }
+
   return (
     <>
     {confirmDialog}
@@ -449,6 +598,18 @@ export default function AdminBoardsPage() {
       active="boards"
       title="Boards"
       subtitle={isSupervisor ? "Your boards and members" : "All boards across supervisors"}
+      right={
+        isAdmin ? (
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
+          >
+            <BoardIcon size={16} />
+            Create board
+          </button>
+        ) : null
+      }
     >
       <div className="w-full">
         {/* Toolbar */}
@@ -925,6 +1086,147 @@ export default function AdminBoardsPage() {
           </div>
         </div>
       )}
+      <Modal
+        open={createOpen}
+        title="Create board"
+        onClose={closeCreateModal}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeCreateModal}
+              className="inline-flex h-10 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={createBoard}
+              disabled={!selectedSupervisor || !boardName.trim() || creatingBoard}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white px-4 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {creatingBoard ? "Creating..." : "Create board"}
+            </button>
+          </>
+        }
+      >
+        <div className="grid gap-4">
+          {createBoardErr ? (
+            <div className="rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
+              {createBoardErr}
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <div className="mb-3 text-[15px] font-black text-slate-900">Board details</div>
+              <div className="grid gap-3">
+                <label className="grid gap-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Board name</span>
+                  <input
+                    value={boardName}
+                    onChange={(e) => setBoardName(e.target.value)}
+                    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                    placeholder="Enter board name"
+                  />
+                </label>
+
+                <label className="grid gap-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Description</span>
+                  <textarea
+                    value={boardDescription}
+                    onChange={(e) => setBoardDescription(e.target.value)}
+                    rows={4}
+                    className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                    placeholder="Optional board description"
+                  />
+                </label>
+
+                <label className="grid gap-1.5">
+                  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Supervisor</span>
+                  <select
+                    value={selectedSupervisorID || ""}
+                    onChange={(e) => setSelectedSupervisorID(Number(e.target.value) || 0)}
+                    disabled={supervisorsLoading}
+                    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
+                  >
+                    <option value="">{supervisorsLoading ? "Loading supervisors..." : "Select supervisor"}</option>
+                    {supervisorOptions.map((supervisor) => (
+                      <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
+                        {supervisor.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <div className="text-[15px] font-black text-slate-900">Board members</div>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
+                  {selectedMemberIDs.size} selected
+                </span>
+              </div>
+              <div className="mb-3 text-[12px] font-semibold text-slate-500">
+                Pick members from the selected supervisor&apos;s assigned students.
+              </div>
+
+              {!selectedSupervisor ? (
+                <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+                  Select a supervisor first.
+                </div>
+              ) : assignedStudentsLoading ? (
+                <div className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+                  Loading assigned students...
+                </div>
+              ) : assignedStudents.length === 0 ? (
+                <div className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+                  This supervisor has no assigned students yet.
+                </div>
+              ) : (
+                <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                  {assignedStudents.map((student) => {
+                    const checked = selectedMemberIDs.has(student.id);
+                    return (
+                      <label
+                        key={student.id}
+                        className={[
+                          "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
+                          checked
+                            ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
+                            : "border-slate-200/70 bg-white hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+                        ].join(" ")}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelectedMember(student.id)}
+                          className="h-4 w-4"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14px] font-black text-slate-900">{student.full_name}</div>
+                          <div className="mt-0.5 truncate text-[12px] font-extrabold text-[#6d5efc]">
+                            {(student.nickname || "").trim() ? `@${String(student.nickname).replace(/^@/, "")}` : "-"}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            {student.cohort ? (
+                              <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-extrabold text-slate-700">
+                                {student.cohort}
+                              </span>
+                            ) : null}
+                            <span className="truncate text-[12px] font-semibold text-slate-500">{student.email}</span>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
     </AdminLayout>
     </>
   );

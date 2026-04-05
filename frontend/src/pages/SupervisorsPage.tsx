@@ -206,7 +206,7 @@ export default function SupervisorsPage() {
             <UserPlusIcon size={15} />
             Assign Talents
           </button>
-          <BackButton onClick={() => nav("/admin")} />
+          {/* <BackButton onClick={() => nav("/admin")} /> */}
         </div>
       }
     >
