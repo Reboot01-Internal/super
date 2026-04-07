@@ -1203,7 +1203,7 @@ useEffect(() => {
                     <option value="">{supervisorsLoading ? "Loading supervisors..." : "Select supervisor"}</option>
                     {supervisorOptions.map((supervisor) => (
                       <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
-                        {supervisor.full_name}
+                        {supervisor.nickname? `${supervisor.full_name} (@${supervisor.nickname})` : supervisor.full_name}
                       </option>
                     ))}
                   </select>
