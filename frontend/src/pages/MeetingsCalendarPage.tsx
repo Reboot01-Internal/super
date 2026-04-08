@@ -56,7 +56,17 @@ type SupervisorOption = {
   name: string;
 };
 
+type ProfileSummary = {
+  user?: {
+    role?: string;
+  };
+};
+
 const MEETING_LOCATIONS = ["Sandbox", "Quest", "Pixel", "Online"] as const;
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
 
 function normalizeMeetingLocation(value: string) {
   return MEETING_LOCATIONS.includes(value as (typeof MEETING_LOCATIONS)[number]) ? value : "Sandbox";
@@ -208,10 +218,10 @@ export default function MeetingsCalendarPage() {
       setMeetings(nextMeetings);
       setBoards(Array.isArray(boardsRes) ? boardsRes : []);
       setSupervisors(Array.isArray(supervisorsRes) ? supervisorsRes : []);
-      const nextRole = String((profileRes as any)?.user?.role || role).trim().toLowerCase();
+      const nextRole = String((profileRes as ProfileSummary)?.user?.role || role).trim().toLowerCase();
       setResolvedRole(nextRole || role);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load meetings");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to load meetings"));
       setMeetings([]);
       setBoards([]);
       setSupervisors([]);
@@ -346,7 +356,7 @@ export default function MeetingsCalendarPage() {
     if (!participantsByMeeting[selectedMeeting.id]) {
       loadParticipants(selectedMeeting.id);
     }
-  }, [selectedMeeting?.id]);
+  }, [loadParticipants, participantsByMeeting, selectedMeeting]);
 
   const monthDays = useMemo(() => {
     const first = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -397,8 +407,8 @@ export default function MeetingsCalendarPage() {
       setSelectedDate(form.date);
       setCurrentMonth(new Date(`${form.date}T00:00:00`));
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Failed to save meeting");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to save meeting"));
     } finally {
       setSaving(false);
     }
@@ -457,8 +467,8 @@ export default function MeetingsCalendarPage() {
         body: JSON.stringify({ meeting_id: meeting.id }),
       });
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Failed to delete meeting");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to delete meeting"));
     } finally {
       setDeletingMeetingID(null);
     }
@@ -477,8 +487,8 @@ export default function MeetingsCalendarPage() {
         }),
       });
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Failed to update meeting status");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to update meeting status"));
     } finally {
       setSavingOutcome(false);
     }
@@ -499,8 +509,8 @@ export default function MeetingsCalendarPage() {
         }),
       });
       await loadParticipants(meetingID);
-    } catch (e: any) {
-      setError(e?.message || "Failed to update participant");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to update participant"));
     } finally {
       setSavingParticipantKey("");
     }
@@ -533,8 +543,8 @@ export default function MeetingsCalendarPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setError(e?.message || "Failed to export calendar");
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to export calendar"));
     } finally {
       setExporting(false);
     }
@@ -565,15 +575,15 @@ export default function MeetingsCalendarPage() {
           </div>
         ) : null}
 
-        <section className="mb-4 grid gap-3 lg:grid-cols-[1.4fr_0.8fr]">
-          <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),linear-gradient(135deg,#ffffff,#fff8eb)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+        <section className="mb-4 grid min-w-0 gap-3 lg:grid-cols-[1.4fr_0.8fr]">
+          <div className="min-w-0 overflow-hidden rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),linear-gradient(135deg,#ffffff,#fff8eb)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] max-[520px]:p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <div className="text-[12px] font-black uppercase tracking-[0.18em] text-amber-700"></div>
-                <div className="mt-2 text-[26px] font-black tracking-[-0.03em] text-slate-900">{monthLabel(currentMonth)}</div>
+                <div className="mt-2 text-[26px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[22px]">{monthLabel(currentMonth)}</div>
                 {/* <div className="mt-1 text-[13px] font-semibold text-slate-600">Room conflict checks, RSVP, attendance, outcomes, and cancellation.</div> */}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="h-10 w-10 rounded-full border border-slate-200 bg-white text-lg font-black text-slate-700">‹</button>
                 <button type="button" onClick={() => {
                   const now = new Date();
@@ -585,7 +595,7 @@ export default function MeetingsCalendarPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
             <StatCard label="Total" value={stats.total} tone="amber" />
             <StatCard label="Upcoming" value={stats.upcoming} tone="emerald" />
             <StatCard label="This month" value={stats.thisMonth} tone="violet" />
@@ -593,7 +603,7 @@ export default function MeetingsCalendarPage() {
           </div>
         </section>
 
-        <section className="mb-4 flex flex-wrap items-center gap-2">
+        <section className="mb-4 flex min-w-0 flex-wrap items-center gap-2">
           <select
             value={selectedSupervisorFilter}
             onChange={(e) => setSelectedSupervisorFilter(e.target.value)}
@@ -621,7 +631,7 @@ export default function MeetingsCalendarPage() {
             type="button"
             onClick={exportCalendar}
             disabled={exporting}
-            className="h-11 rounded-[14px] border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+            className="h-11 rounded-[14px] border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 max-[520px]:w-full"
           >
             {exporting ? "Exporting..." : "Export Calendar"}
           </button>
@@ -636,17 +646,17 @@ export default function MeetingsCalendarPage() {
           ) : null} */}
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
-          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-            <div className="mb-3 grid grid-cols-7 gap-2">
+        <section className="grid min-w-0 gap-4 xl:grid-cols-[1.18fr_0.82fr]">
+          <div className="min-w-0 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] max-[520px]:rounded-[18px] max-[520px]:p-2.5">
+            <div className="mb-3 grid grid-cols-7 gap-2 max-[520px]:mb-1.5 max-[520px]:gap-1">
               {monthDays.slice(0, 7).map((day) => (
-                <div key={day.toISOString()} className="px-2 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">{dayLabel(day)}</div>
+                <div key={day.toISOString()} className="px-2 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-slate-400 max-[520px]:px-0 max-[520px]:text-center max-[520px]:text-[9px] max-[520px]:tracking-[0.04em]">{dayLabel(day)}</div>
               ))}
             </div>
             {loading ? (
               <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-8 text-center text-[14px] font-semibold text-slate-500">Loading calendar...</div>
             ) : (
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid min-w-0 grid-cols-7 gap-2 max-[520px]:gap-1">
                 {monthDays.map((day) => {
                   const key = dateKey(day);
                   const dayMeetings = meetingsByDay.get(key) || [];
@@ -658,16 +668,17 @@ export default function MeetingsCalendarPage() {
                       type="button"
                       onClick={() => setSelectedDate(key)}
                       className={[
-                        "min-h-[102px] rounded-[18px] border p-2.5 text-left transition xl:min-h-[112px]",
+                        "min-h-[102px] min-w-0 rounded-[18px] border p-2.5 text-left transition xl:min-h-[112px]",
+                        "max-[520px]:min-h-[48px] max-[520px]:rounded-[12px] max-[520px]:p-1.5",
                         isCurrent ? "border-amber-300 bg-amber-50 shadow-[0_14px_34px_rgba(245,158,11,0.16)]" : "border-slate-200 bg-slate-50 hover:border-amber-200 hover:bg-white",
                         isInMonth ? "text-slate-900" : "text-slate-400 opacity-70",
                       ].join(" ")}
                     >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-[13px] font-black">{day.getDate()}</span>
-                        {dayMeetings.length ? <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white">{dayMeetings.length}</span> : null}
+                      <div className="mb-2 flex items-center justify-between gap-2 max-[520px]:mb-0.5 max-[520px]:gap-1">
+                        <span className="text-[13px] font-black max-[520px]:text-[11px]">{day.getDate()}</span>
+                        {dayMeetings.length ? <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white max-[520px]:px-1.5 max-[520px]:text-[8px]">{dayMeetings.length}</span> : null}
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 max-[520px]:hidden">
                         {dayMeetings.slice(0, 3).map((meeting) => (
                           <div key={meeting.id} className={`rounded-[12px] border px-2 py-1.5 ${meetingSurfaceClass(meeting.status)}`}>
                             <div className="truncate text-[11px] font-black">{meeting.title}</div>
@@ -675,6 +686,19 @@ export default function MeetingsCalendarPage() {
                           </div>
                         ))}
                       </div>
+                      {dayMeetings.length ? (
+                        <div className="mt-1 hidden flex-wrap gap-1 max-[520px]:flex" aria-hidden="true">
+                          {dayMeetings.slice(0, 3).map((meeting) => (
+                            <span
+                              key={meeting.id}
+                              className={[
+                                "h-1.5 w-1.5 rounded-full",
+                                meeting.status === "completed" ? "bg-emerald-500" : meeting.status === "canceled" ? "bg-rose-400" : "bg-amber-400",
+                              ].join(" ")}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -682,17 +706,17 @@ export default function MeetingsCalendarPage() {
             )}
           </div>
 
-          <div className="grid gap-4">
-            <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+          <div className="grid min-w-0 gap-4">
+            <div className="min-w-0 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] max-[520px]:rounded-[18px]">
+              <div className="flex items-start justify-between gap-3 max-[520px]:flex-col">
+                <div className="min-w-0">
                   <div className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">Selected day</div>
-                  <div className="mt-1 text-[22px] font-black tracking-[-0.03em] text-slate-900">{new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</div>
+                  <div className="mt-1 text-[22px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[18px]">{new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</div>
                 </div>
                 <input type="date" value={selectedDate} onChange={(e) => {
                   setSelectedDate(e.target.value);
                   setCurrentMonth(new Date(`${e.target.value}T00:00:00`));
-                }} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[12px] font-bold text-slate-700" />
+                }} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[12px] font-bold text-slate-700 max-[520px]:w-full" />
               </div>
 
               <div className="mt-4 space-y-3">
@@ -876,17 +900,17 @@ export default function MeetingsCalendarPage() {
         </section>
 
         {showComposer ? (
-          <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/45 p-4" onClick={closeComposer}>
-            <div className="w-full max-w-[760px] rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)]" onClick={(e) => e.stopPropagation()}>
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900">{editingMeetingID ? "Reschedule meeting" : "Book a meeting"}</div>
-                  <div className="mt-1 text-[13px] font-semibold text-slate-500">Room conflicts are blocked automatically and participants will sync from the board.</div>
+          <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
+            <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">{editingMeetingID ? "Reschedule meeting" : "Book a meeting"}</div>
+                  <div className="mt-1 max-w-[360px] text-[13px] font-semibold text-slate-500 max-[520px]:text-[12px]">Room conflicts are blocked automatically and participants will sync from the board.</div>
                 </div>
-                <button type="button" onClick={closeComposer} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+                <button type="button" onClick={closeComposer} className="h-10 shrink-0 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
               </div>
 
-              <form className="grid gap-4" onSubmit={submitMeeting}>
+              <form className="grid min-h-0 gap-4 overflow-y-auto pr-1" onSubmit={submitMeeting}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Board">
                     <select required value={form.board_id} onChange={(e) => setForm((prev) => ({ ...prev, board_id: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300">
@@ -915,8 +939,8 @@ export default function MeetingsCalendarPage() {
                 <Field label="Agenda / meeting notes">
                   <textarea value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="min-h-[96px] w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-amber-300" placeholder="Topics to cover, preparation notes, or room setup details." />
                 </Field>
-                <div className="flex justify-end">
-                  <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70">{saving ? "Saving..." : editingMeetingID ? "Save reschedule" : "Create meeting"}</button>
+                <div className="flex justify-end max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
+                  <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">{saving ? "Saving..." : editingMeetingID ? "Save reschedule" : "Create meeting"}</button>
                 </div>
               </form>
             </div>
