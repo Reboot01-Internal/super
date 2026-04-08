@@ -501,6 +501,13 @@ body, button, input, select, textarea {
   border-color: #344665 !important;
 }
 
+.admin-dark .users-delete-selected,
+.admin-dark .users-delete-selected:hover {
+  background: #2c2130 !important;
+  border-color: #6f3a47 !important;
+  box-shadow: none !important;
+}
+
 .admin-dark .users-role-supervisor {
   background: #243654 !important;
   border-color: #405478 !important;
@@ -728,6 +735,83 @@ body, button, input, select, textarea {
   background: #311b24 !important;
   border-color: #7f3040 !important;
   color: #ff8f9d !important;
+}
+
+.admin-dark .reports-page [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.admin-dark .reports-page [class*="bg-[radial-gradient"],
+.admin-dark .reports-page [class*="bg-[linear-gradient"],
+.admin-dark .reports-page [class~="bg-white"],
+.admin-dark .reports-page [class~="bg-white/85"] {
+  background: #0e1525 !important;
+  background-color: #0e1525 !important;
+  border-color: #24304a !important;
+}
+
+.admin-dark .reports-page [class~="bg-slate-50"],
+.admin-dark .reports-page [class~="bg-white/80"] {
+  background: #111a2c !important;
+  background-color: #111a2c !important;
+  border-color: #25324a !important;
+}
+
+.admin-dark .reports-page input,
+.admin-dark .reports-page select {
+  background: #111a2c !important;
+  border-color: #24304a !important;
+  color: #f4f7fb !important;
+}
+
+.admin-dark .reports-page [class~="bg-emerald-50"],
+.admin-dark .reports-page [class~="bg-emerald-50/80"] {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .reports-page [class~="bg-red-50"],
+.admin-dark .reports-page [class~="bg-red-50/80"] {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
+.admin-dark .reports-page [class~="bg-amber-50/80"] {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+.admin-dark .reports-page [class~="text-slate-950"],
+.admin-dark .reports-page [class~="text-slate-900"],
+.admin-dark .reports-page [class~="text-slate-800"] {
+  color: #f4f7fb !important;
+}
+
+.admin-dark .reports-page [class~="text-slate-700"],
+.admin-dark .reports-page [class~="text-slate-600"],
+.admin-dark .reports-page [class~="text-slate-500"] {
+  color: #a5b0c3 !important;
+}
+
+.admin-dark .reports-page [class~="text-red-700"] {
+  color: #ff8f9d !important;
+}
+
+.admin-dark .reports-page [class~="text-emerald-700"] {
+  color: #7ee0ae !important;
+}
+
+.admin-dark .reports-page [class~="text-orange-700"],
+.admin-dark .reports-page [class~="text-amber-700"] {
+  color: #f4c66a !important;
+}
+
+.admin-dark .reports-page [class~="text-[#4f46e5]"],
+.admin-dark .reports-page [class~="text-[#5b50d6]"] {
+  color: #8d82ff !important;
 }
 
 .admin-dark .dashboard-page [class*="border"] {

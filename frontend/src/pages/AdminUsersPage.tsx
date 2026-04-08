@@ -1170,7 +1170,7 @@ export default function AdminUsersPage() {
                     "users-row-card rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
                     deleteMode ? "cursor-pointer" : "cursor-pointer",
                     deleteMode && selectedUserIds.has(u.id)
-                      ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
+                      ? "users-delete-selected border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
                       : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
                   ].join(" ")}
                 >

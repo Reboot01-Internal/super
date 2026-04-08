@@ -418,7 +418,7 @@ export default function AdminReportsPage() {
           Building reports...
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="reports-page grid gap-4">
           <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(109,94,252,0.16),_transparent_38%),radial-gradient(circle_at_80%_20%,_rgba(16,185,129,0.14),_transparent_30%),linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
             <div className="grid gap-4 xl:grid-cols-[1.5fr_0.9fr]">
               <div className="space-y-4">
