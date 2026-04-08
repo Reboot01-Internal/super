@@ -665,7 +665,7 @@ useEffect(() => {
         {/* Toolbar */}
         <div className="mb-4 flex items-center justify-between gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
           <div className="flex min-w-0 flex-[1.35] items-center gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
-            <div className="flex h-14 min-w-[520px] flex-1 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[1180px]:min-w-0">
+            <div className="boards-search flex h-14 min-w-[520px] flex-1 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[1180px]:min-w-0">
               <span className="text-slate-400" aria-hidden="true">
                 <SearchIcon />
               </span>

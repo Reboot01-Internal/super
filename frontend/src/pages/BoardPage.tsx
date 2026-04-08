@@ -1011,7 +1011,7 @@ export default function BoardPage() {
         <div className="flex items-center gap-2">
           {isAdmin ? (
             <button
-              className="h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition"
+              className="board-detail-icon-button board-detail-icon-button-warning h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition"
               onClick={() => nav(`/admin/boards/${boardID}/meetings`)}
               title="Board meetings"
               aria-label="Board meetings"
@@ -1020,7 +1020,7 @@ export default function BoardPage() {
             </button>
           ) : null}
           <button
-            className="h-10 w-10 grid place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+            className="board-detail-icon-button board-detail-icon-button-success h-10 w-10 grid place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
             onClick={openMembersModal}
             title="Board members"
             aria-label="Board members"
@@ -1028,7 +1028,7 @@ export default function BoardPage() {
             <GroupIcon />
           </button>
           <button
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
+            className="board-detail-back-button h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
             onClick={() => nav("/admin/boards")}
           >
             Boards
@@ -1057,7 +1057,7 @@ export default function BoardPage() {
           onClick={() => setMembersOpen(false)}
         >
           <div
-            className="w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+            className="board-members-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -1070,7 +1070,7 @@ export default function BoardPage() {
               <div className="flex items-center gap-2">
                 {canManage ? (
                   <button
-                    className="h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                    className="board-popup-edit h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
                     title="Edit members"
                     aria-label="Edit members"
                     onClick={() => {
@@ -1082,7 +1082,7 @@ export default function BoardPage() {
                   </button>
                 ) : null}
                 <button
-                  className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                  className="board-popup-close h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
                   onClick={() => setMembersOpen(false)}
                 >
                   Close
@@ -1105,7 +1105,7 @@ export default function BoardPage() {
                 {members.map((m) => (
                   <div
                     key={m.user_id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                    className="board-member-row flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
@@ -1143,8 +1143,8 @@ export default function BoardPage() {
       {loading && <div className="text-slate-500 font-semibold">Loading board...</div>}
 
       {!loading && data && (
-        <div className="grid gap-4">
-          <div className="rounded-[18px] border border-slate-200 bg-white p-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+        <div className="board-detail-page grid gap-4">
+          <div className="board-detail-toolbar rounded-[18px] border border-slate-200 bg-white p-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="h-8 px-3 inline-flex items-center rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[12px] font-extrabold text-slate-700">
                 {listsSorted.length} Lists
@@ -1152,11 +1152,11 @@ export default function BoardPage() {
               <span className="h-8 px-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-extrabold text-slate-700">
                 {boardStats.total} Cards
               </span>
-              <span className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-[12px] font-extrabold text-emerald-700">
+              <span className="board-detail-status-done h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-[12px] font-extrabold text-emerald-700">
                 <CircleCheckIcon size={12} />
                 {boardStats.done} Done
               </span>
-              <span className="h-8 px-3 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 text-[12px] font-extrabold text-rose-700">
+              <span className="board-detail-status-overdue h-8 px-3 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 text-[12px] font-extrabold text-rose-700">
                 {boardStats.overdue} Overdue
               </span>
             </div>
