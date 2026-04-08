@@ -83,13 +83,13 @@ function PieChart({ activePercent }: { activePercent: number }) {
 
   return (
     <div
-      className="relative h-[220px] w-[220px] max-[420px]:h-[184px] max-[420px]:w-[184px] flex-none rounded-full"
+      className="activity-pie relative h-[220px] w-[220px] max-[420px]:h-[184px] max-[420px]:w-[184px] flex-none rounded-full"
       style={{
         background:
           pct <= 0
-            ? "#fde2e2"
+            ? "var(--activity-inactive-ring, #fde2e2)"
             : pct >= 100
-            ? "#dff7e8"
+            ? "var(--activity-active-ring, #dff7e8)"
             : `conic-gradient(#22c55e 0deg ${angle}deg, #f87171 ${angle}deg 360deg)`,
       }}
     >
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
                     onClick={() => setActivityWeekOffset((prev) => prev + 1)}
                     className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-[12px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                   >
-                    Previous week
+                    &lt; 
                   </button>
                   <button
                     type="button"
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                     disabled={activityWeekOffset === 0}
                     className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-[12px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Next
+                     &gt;
                   </button>
                 </div>
               </div>

@@ -355,6 +355,11 @@ body, button, input, select, textarea {
   background-color: #1c2a43 !important;
 }
 
+.admin-dark .activity-pie {
+  --activity-inactive-ring: #8f373f;
+  --activity-active-ring: #2f7f55;
+}
+
 .admin-dark .boards-page [class*="text-slate-900/"],
 .admin-dark .boards-page [class*="text-slate-800/"],
 .admin-dark .boards-page [class*="text-slate-700/"] {
