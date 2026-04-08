@@ -31,6 +31,10 @@ function initials(name: string) {
   return v || "B";
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
+
 function ClockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -208,8 +212,8 @@ export default function SupervisorFilePage() {
     try {
       const res = await apiFetch(`/admin/boards?file_id=${fileID}`);
       setBoards(res);
-    } catch (e: any) {
-      setErr(e.message || "Failed to load boards");
+    } catch (e: unknown) {
+      setErr(errorMessage(e, "Failed to load boards"));
     } finally {
       setLoading(false);
     }
@@ -220,10 +224,6 @@ export default function SupervisorFilePage() {
     loadBoards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileID]);
-
-  if (!isAdmin && !isSupervisor) {
-    return <Navigate to="/admin/boards" replace />;
-  }
 
   async function createBoard(e: React.FormEvent) {
     e.preventDefault();
@@ -246,8 +246,8 @@ export default function SupervisorFilePage() {
       setName("");
       setDescription("");
       await loadBoards();
-    } catch (e: any) {
-      setErr(e.message || "Failed to create board");
+    } catch (e: unknown) {
+      setErr(errorMessage(e, "Failed to create board"));
     } finally {
       setCreating(false);
     }
@@ -295,8 +295,8 @@ export default function SupervisorFilePage() {
       setBoards((prev) => prev.map((b) => (b.id === boardID ? { ...b, name: next } : b)));
       setMsg("Board name updated.");
       cancelRename();
-    } catch (e: any) {
-      setErr(e.message || "Failed to update board name");
+    } catch (e: unknown) {
+      setErr(errorMessage(e, "Failed to update board name"));
     } finally {
       setRenaming(false);
     }
@@ -324,8 +324,8 @@ export default function SupervisorFilePage() {
         cancelRename();
       }
       setMsg("Board deleted.");
-    } catch (e: any) {
-      setErr(e.message || "Failed to delete board");
+    } catch (e: unknown) {
+      setErr(errorMessage(e, "Failed to delete board"));
     } finally {
       setDeletingBoardID(null);
     }
@@ -361,8 +361,8 @@ export default function SupervisorFilePage() {
       setMsg(`Board moved to the new supervisor workspace.`);
       closeReassign();
       await loadBoards();
-    } catch (e: any) {
-      setErr(e.message || "Failed to reassign board ownership");
+    } catch (e: unknown) {
+      setErr(errorMessage(e, "Failed to reassign board ownership"));
     } finally {
       setReassigning(false);
     }
@@ -379,6 +379,10 @@ export default function SupervisorFilePage() {
 
   const nameMax = 60;
   const descMax = 120;
+
+  if (!isAdmin && !isSupervisor) {
+    return <Navigate to="/admin/boards" replace />;
+  }
 
   return (
     <>
@@ -480,10 +484,10 @@ export default function SupervisorFilePage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-[1.25fr_0.95fr]">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[1.25fr_0.95fr]">
         {/* Left */}
-        <div className="grid gap-4">
-          <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+        <div className="grid min-w-0 gap-4">
+          <section className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[16px] font-black tracking-[-0.2px] text-slate-900">
@@ -575,8 +579,8 @@ export default function SupervisorFilePage() {
         </div>
 
         {/* Right */}
-        <div className="grid gap-4">
-          <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+        <div className="grid min-w-0 gap-4">
+          <section className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[16px] font-black tracking-[-0.2px] text-slate-900">Boards</div>
@@ -603,7 +607,7 @@ export default function SupervisorFilePage() {
             ) : boardsSorted.length === 0 ? (
               <div className="text-[13px] text-slate-500">No boards yet.</div>
             ) : (
-              <div className="grid gap-2">
+              <div className="grid min-w-0 gap-2">
                 {boardsSorted.map((b) => {
                   const created = new Date(b.created_at);
                   const desc = (b.description || "").trim();
@@ -612,9 +616,10 @@ export default function SupervisorFilePage() {
                     <div
                       key={b.id}
                       className={[
-                        "flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left",
+                        "flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left",
                         "shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition",
                         "hover:-translate-y-[1px] hover:border-violet-200 hover:bg-violet-50/30 hover:shadow-[0_16px_32px_rgba(109,94,252,0.12)]",
+                        "max-[520px]:flex-col max-[520px]:items-stretch",
                       ].join(" ")}
                     >
                       <div className="flex min-w-0 items-center gap-3">
@@ -624,7 +629,7 @@ export default function SupervisorFilePage() {
 
                         <div className="min-w-0">
                           {editingBoardID === b.id ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <input
                                 autoFocus
                                 value={editingBoardName}
@@ -640,7 +645,7 @@ export default function SupervisorFilePage() {
                                     cancelRename();
                                   }
                                 }}
-                                className="h-8 min-w-[160px] rounded-lg border border-violet-300 bg-white px-2.5 text-[13px] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200/50"
+                                className="h-8 min-w-0 w-full rounded-lg border border-violet-300 bg-white px-2.5 text-[13px] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200/50"
                                 placeholder="Board name"
                               />
                             </div>
@@ -655,8 +660,8 @@ export default function SupervisorFilePage() {
                             </button>
                           )}
 
-                          <div className="mt-1 flex min-w-0 items-center gap-2 text-[12px] font-extrabold text-slate-500">
-                            <span className="inline-flex items-center gap-2">
+                          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-[12px] font-extrabold text-slate-500">
+                            <span className="inline-flex min-w-0 items-center gap-2">
                               <ClockIcon /> {created.toLocaleDateString()}
                             </span>
 
@@ -672,7 +677,7 @@ export default function SupervisorFilePage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-none items-center gap-2">
+                      <div className="flex flex-none flex-wrap items-center justify-end gap-2 max-[520px]:justify-start">
                         <button
                           className="inline-flex h-8 items-center justify-center rounded-full border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[12px] font-black text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]"
                           type="button"

@@ -83,7 +83,7 @@ function PieChart({ activePercent }: { activePercent: number }) {
 
   return (
     <div
-      className="relative h-[220px] w-[220px] flex-none rounded-full"
+      className="relative h-[220px] w-[220px] max-[420px]:h-[184px] max-[420px]:w-[184px] flex-none rounded-full"
       style={{
         background:
           pct <= 0
@@ -93,9 +93,9 @@ function PieChart({ activePercent }: { activePercent: number }) {
             : `conic-gradient(#22c55e 0deg ${angle}deg, #f87171 ${angle}deg 360deg)`,
       }}
     >
-      <div className="absolute inset-[28px] grid place-items-center rounded-full border border-slate-200 bg-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+      <div className="absolute inset-[28px] grid place-items-center rounded-full border border-slate-200 bg-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] max-[420px]:inset-[23px]">
         <div>
-          <div className="text-[42px] font-black tracking-[-0.04em] text-slate-900">{pct}%</div>
+          <div className="text-[42px] font-black tracking-[-0.04em] text-slate-900 max-[420px]:text-[34px]">{pct}%</div>
           <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Active</div>
         </div>
       </div>
@@ -115,9 +115,9 @@ function StatCard({
   subtitle?: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+    <div className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs font-extrabold text-slate-500">{label}</div>
           <div className="mt-1.5 text-2xl font-black text-slate-900">{value}</div>
         </div>
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout active="dashboard" title="Admin Dashboard" subtitle="Manage users and supervise the system.">
-      <section className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Supervisors"
           value={statsLoading ? "..." : totalSupervisors}
@@ -246,9 +246,9 @@ export default function AdminDashboard() {
         /> */}
       </section>
 
-      <section className="mt-3.5 grid grid-cols-1 gap-3.5 xl:grid-cols-2">
-        <div className="grid justify-start">
-          <div className="relative h-[500px] w-[500px] max-w-full rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[760px]:h-auto">
+      <section className="mt-3.5 grid min-w-0 grid-cols-1 gap-3.5 xl:grid-cols-2">
+        <div className="grid min-w-0">
+          <div className="relative h-[500px] w-full max-w-[500px] rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[760px]:h-auto max-[520px]:p-4">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-extrabold text-slate-500">Supervisor Activity</div>
@@ -276,11 +276,11 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex min-h-[360px] items-center justify-center max-[760px]:min-h-[280px]">
+            <div className="flex min-h-[360px] items-center justify-center max-[760px]:min-h-[280px] max-[420px]:min-h-[230px]">
               <PieChart activePercent={statsLoading ? 0 : activeSupervisorPercent} />
             </div>
 
-            <div className="absolute bottom-5 right-5 flex items-center gap-6 text-right">
+            <div className="absolute bottom-5 right-5 flex items-center gap-6 text-right max-[420px]:static max-[420px]:mt-2 max-[420px]:justify-end max-[420px]:gap-4">
               <div className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-500">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                 <span>Active</span>
@@ -293,7 +293,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+        <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:p-4">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <div className="text-xs font-extrabold text-slate-500">Task Completion</div>
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid min-w-0 grid-cols-2 gap-3 max-[420px]:grid-cols-1">
             <StatCard
               label="Tasks"
               value={statsLoading ? "..." : taskCount}
@@ -355,8 +355,8 @@ export default function AdminDashboard() {
                 style={{ width: `${statsLoading ? 0 : onTimePercent}%` }}
               />
             </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-[12px] font-semibold text-slate-500">
-              <span>On time items stay ahead of their due dates.</span>
+            <div className="mt-3 flex items-center justify-between gap-3 text-[12px] font-semibold text-slate-500 max-[420px]:items-start">
+              <span className="min-w-0">On time items stay ahead of their due dates.</span>
               <span className="font-black text-slate-700">{statsLoading ? "..." : `${onTimeCount} / ${totalTrackedItems}`}</span>
             </div>
           </div>
