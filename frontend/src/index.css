@@ -467,6 +467,99 @@ body, button, input, select, textarea {
   color: #ffb0ba !important;
 }
 
+.admin-dark .users-create-panel,
+.admin-dark .users-create-card,
+.admin-dark .users-list-panel {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .users-page [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.admin-dark .users-page input,
+.admin-dark .users-page select {
+  background: #111a2c !important;
+  border-color: #24304a !important;
+  color: #f4f7fb !important;
+}
+
+.admin-dark .users-page input::placeholder {
+  color: #6f7b91 !important;
+}
+
+.admin-dark .users-row-card {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .users-row-card:hover {
+  background: #111a2c !important;
+  border-color: #344665 !important;
+}
+
+.admin-dark .users-role-supervisor {
+  background: #243654 !important;
+  border-color: #405478 !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .users-role-talent {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .users-count-pill {
+  background: #263855 !important;
+  border-color: #405478 !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .users-page [class~="bg-emerald-50"] {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .users-page [class~="bg-amber-50"],
+.admin-dark .users-page [class~="bg-amber-50/70"] {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+.admin-dark .users-page [class~="bg-sky-50"] {
+  background: #14283a !important;
+  border-color: #245878 !important;
+  color: #91d8ff !important;
+}
+
+.admin-dark .users-page [class~="bg-white"],
+.admin-dark .users-page [class~="bg-white/90"],
+.admin-dark .users-page [class~="bg-slate-50"],
+.admin-dark .users-page [class~="bg-slate-50/75"],
+.admin-dark .users-page [class~="bg-slate-50/80"] {
+  background: #111a2c !important;
+  border-color: #25324a !important;
+}
+
+.admin-dark .users-delete-toggle,
+.admin-dark .users-delete-button {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
+.admin-dark .users-delete-toggle span {
+  background: #40202b !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
 .admin-dark .dashboard-page [class*="border"] {
   border-color: transparent !important;
 }

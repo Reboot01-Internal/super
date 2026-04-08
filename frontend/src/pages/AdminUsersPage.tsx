@@ -87,8 +87,8 @@ function initialsOf(name: string) {
 }
 
 function roleTone(role: string) {
-  if (role === "supervisor") return "border-[#6d5efc]/20 bg-[#f7f5ff] text-[#6d5efc]";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (role === "supervisor") return "users-role-pill users-role-supervisor border-[#6d5efc]/20 bg-[#f7f5ff] text-[#6d5efc]";
+  return "users-role-pill users-role-talent border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
 function withAt(n: string) {
@@ -786,6 +786,7 @@ export default function AdminUsersPage() {
           </div>
         }
       >
+      <div className="users-page">
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
           {err}
@@ -793,7 +794,7 @@ export default function AdminUsersPage() {
       ) : null}
 
       {createOpen ? (
-        <section className="mb-4 rounded-[20px] border border-slate-200/80 bg-white/82 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur sm:p-4">
+        <section className="users-create-panel mb-4 rounded-[20px] border border-slate-200/80 bg-white/82 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur sm:p-4">
           {createErr ? (
             <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
               {createErr}
@@ -806,7 +807,7 @@ export default function AdminUsersPage() {
           ) : null}
 
           <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/88 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <section className="users-create-card min-w-0 rounded-[18px] border border-slate-200/80 bg-white/88 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[16px] font-black text-slate-900">Find users</div>
@@ -864,7 +865,7 @@ export default function AdminUsersPage() {
                   {visibleResults.map((u) => (
                     <article
                       key={`${u.email.toLowerCase()}::${createRole}`}
-                      className="flex items-center gap-3 rounded-[16px] border border-slate-200 bg-slate-50/75 px-3 py-3 transition hover:border-[#6d5efc]/18 hover:bg-white"
+                      className="users-row-card flex items-center gap-3 rounded-[16px] border border-slate-200 bg-slate-50/75 px-3 py-3 transition hover:border-[#6d5efc]/18 hover:bg-white"
                     >
                       <div className="grid h-11 w-11 flex-none place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
                         {initialsOf(u.full_name)}
@@ -909,7 +910,7 @@ export default function AdminUsersPage() {
               )}
             </section>
 
-            <section className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/88 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <section className="users-create-card min-w-0 rounded-[18px] border border-slate-200/80 bg-white/88 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[16px] font-black text-slate-900">Ready to add</div>
@@ -917,7 +918,7 @@ export default function AdminUsersPage() {
                     Build your list here, remove anyone you want, then add them together.
                   </div>
                 </div>
-                <div className="grid h-9 min-w-9 place-items-center rounded-full border border-[#6d5efc]/18 bg-[#f7f5ff] px-2 text-[12px] font-black text-[#6d5efc]">
+                <div className="users-count-pill grid h-9 min-w-9 place-items-center rounded-full border border-[#6d5efc]/18 bg-[#f7f5ff] px-2 text-[12px] font-black text-[#6d5efc]">
                   {queue.length}
                 </div>
               </div>
@@ -951,7 +952,7 @@ export default function AdminUsersPage() {
                     <article
                       key={u.key}
                       className={[
-                        "flex items-center gap-3 rounded-[16px] border px-3 py-3 transition",
+                        "users-row-card flex items-center gap-3 rounded-[16px] border px-3 py-3 transition",
                         u.role_exists
                           ? "border-amber-200 bg-amber-50/70"
                           : "border-slate-200 bg-slate-50/75 hover:border-[#6d5efc]/18 hover:bg-white",
@@ -1006,7 +1007,7 @@ export default function AdminUsersPage() {
         </section>
       ) : null}
 
-      <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+      <section className="users-list-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
         <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_150px_150px_190px]">
           <input
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
@@ -1064,6 +1065,7 @@ export default function AdminUsersPage() {
             onClick={() => setDeleteMode((prev) => !prev)}
             className={[
               "inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-[13px] font-black shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition",
+              "users-delete-toggle",
               deleteMode
                 ? "border-rose-200 bg-[linear-gradient(180deg,#fff8f8_0%,#fff1f2_100%)] text-rose-600 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50"
                 : "border-rose-200 bg-white text-rose-500 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
@@ -1105,7 +1107,7 @@ export default function AdminUsersPage() {
                 type="button"
                 onClick={deleteSelectedUsers}
                 disabled={selectedUserIds.size === 0 || deletingUsers}
-                className="inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                className="users-delete-button inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
               >
                 {deletingUsers ? (
                   "Deleting..."
@@ -1165,7 +1167,7 @@ export default function AdminUsersPage() {
                     }
                   }}
                   className={[
-                    "rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
+                    "users-row-card rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
                     deleteMode ? "cursor-pointer" : "cursor-pointer",
                     deleteMode && selectedUserIds.has(u.id)
                       ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
@@ -1218,6 +1220,7 @@ export default function AdminUsersPage() {
           </div>
         )}
       </section>
+      </div>
       </AdminLayout>
     </>
   );
