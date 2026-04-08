@@ -233,7 +233,7 @@ export default function BoardMeetingsPage() {
       {loading ? (
         <div className="text-sm font-semibold text-slate-500">Loading board meetings...</div>
       ) : (
-        <div className="grid h-[calc(100vh-220px)] min-h-0 gap-4">
+        <div className="grid h-auto min-h-0 gap-4 xl:h-[calc(100vh-220px)]">
           <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">

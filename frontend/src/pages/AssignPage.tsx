@@ -427,7 +427,7 @@ export default function AssignPage() {
           </div>
         )}
 
-        <div className="grid min-w-0 h-[calc(100vh-220px)] grid-cols-1 gap-3 xl:grid-cols-[360px_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 h-auto grid-cols-1 gap-3 xl:h-[calc(100vh-220px)] xl:grid-cols-[360px_minmax(0,1fr)_minmax(0,1fr)]">
           {/* ============== Column 1: Supervisors ============== */}
           <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">

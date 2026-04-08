@@ -7,13 +7,73 @@ import faviconIcon from "/favicon-icon.png";
 import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 import UserAvatar from "./UserAvatar";
 
-type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications" };
+type Props = {
+  active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
+  drawer?: boolean;
+  onNavigate?: () => void;
+};
+
+type SidebarItemProps = {
+  id: NonNullable<Props["active"]>;
+  currentActive?: Props["active"];
+  label: string;
+  to: string;
+  icon: ReactNode;
+  showNotificationDot?: boolean;
+  onNavigate?: () => void;
+};
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-export default function AdminSidebar({ active }: Props) {
+function SidebarItem({
+  id,
+  currentActive,
+  label,
+  to,
+  icon,
+  showNotificationDot = false,
+  onNavigate,
+}: SidebarItemProps) {
+  const nav = useNavigate();
+  const isActive = currentActive === id;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        nav(to);
+        onNavigate?.();
+      }}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition",
+        isActive
+          ? "border-[#6d5efc]/22 bg-[#f3f1ff] text-slate-900"
+          : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+      )}
+    >
+      <span className="relative grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
+        {icon}
+        {showNotificationDot ? (
+          <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
+        ) : null}
+      </span>
+      <span className="text-[14px] leading-none">{label}</span>
+    </button>
+  );
+}
+
+function SignOutIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default function AdminSidebar({ active, drawer = false, onNavigate }: Props) {
   const nav = useNavigate();
   const { isAdmin, login, email, role, displayName, setDisplayName, logout } = useAuth();
   const { hasUnread } = useNotifications();
@@ -78,57 +138,28 @@ export default function AdminSidebar({ active }: Props) {
     .map((x) => x[0]?.toUpperCase() || "")
     .join("") || "U";
 
-  const Item = ({
-    id,
-    label,
-    to,
-    icon,
-    showNotificationDot = false,
-  }: {
-    id: NonNullable<Props["active"]>;
-    label: string;
-    to: string;
-    icon: ReactNode;
-    showNotificationDot?: boolean;
-  }) => {
-    const isActive = active === id;
-    return (
-      <button
-        type="button"
-        onClick={() => nav(to)}
+  return (
+    <aside
+      className={cn(
+        "self-start",
+        drawer ? "h-full" : "sticky top-[22px] max-[1050px]:top-0"
+      )}
+    >
+      <div
         className={cn(
-          "flex w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition",
-          isActive
-            ? "border-[#6d5efc]/22 bg-[#f3f1ff] text-slate-900"
-            : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+          "flex w-[220px] max-w-full flex-col border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]",
+          drawer
+            ? "h-full min-h-full rounded-r-[22px]"
+            : "min-h-[calc(100vh-44px)] rounded-[22px] max-[1050px]:min-h-0 max-[1050px]:w-full"
         )}
       >
-        <span className="relative grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-          {icon}
-          {showNotificationDot ? (
-            <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
-          ) : null}
-        </span>
-        <span className="text-[14px] leading-none">{label}</span>
-      </button>
-    );
-  };
-
-  const SignOutIcon = ({ size = 16 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-
-  return (
-    <aside className="sticky top-[22px] self-start max-[1050px]:top-0">
-      <div className="flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] max-[1050px]:min-h-0 max-[1050px]:w-full">
         <div className="flex flex-col gap-3">
           <button
             type="button"
-            onClick={() => nav(isAdmin ? "/admin" : "/admin/boards")}
+            onClick={() => {
+              nav(isAdmin ? "/admin" : "/admin/boards");
+              onNavigate?.();
+            }}
             className="flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
           >
             <img
@@ -147,7 +178,9 @@ export default function AdminSidebar({ active }: Props) {
           <nav className="flex flex-col gap-2">
           {isAdmin ? (
             <>
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="dashboard"
                 label="Dashboard"
                 to="/admin"
@@ -158,7 +191,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="supervisors"
                 label="Supervisors"
                 to="/admin/supervisors"
@@ -171,7 +206,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="boards"
                 label="Boards"
                 to="/admin/boards"
@@ -193,7 +230,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="users"
                 label="Users"
                 to="/admin/users"
@@ -206,7 +245,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="meetings"
                 label="Meetings"
                 to="/admin/meetings"
@@ -218,7 +259,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="notifications"
                 label="Notifications"
                 to="/notifications"
@@ -230,7 +273,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="reports"
                 label="Reports"
                 to="/admin/reports"
@@ -246,7 +291,9 @@ export default function AdminSidebar({ active }: Props) {
             </>
           ) : (
             <>
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="boards"
                 label="Boards"
                 to="/admin/boards"
@@ -257,7 +304,9 @@ export default function AdminSidebar({ active }: Props) {
                   </svg>
                 }
               />
-              <Item
+              <SidebarItem
+                currentActive={active}
+                onNavigate={onNavigate}
                 id="profile"
                 label="Profile"
                 to="/profile"
@@ -277,7 +326,10 @@ export default function AdminSidebar({ active }: Props) {
           <div className="flex flex-col gap-2">
             <button
               type="button"
-              onClick={() => nav("/profile")}
+              onClick={() => {
+                nav("/profile");
+                onNavigate?.();
+              }}
               className="flex min-w-0 flex-1 items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50"
               title="Open profile"
               aria-label="Open profile"
@@ -298,7 +350,10 @@ export default function AdminSidebar({ active }: Props) {
 
             <button
               type="button"
-              onClick={logout}
+              onClick={() => {
+                logout();
+                onNavigate?.();
+              }}
               title="Log out"
               aria-label="Log out"
               className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"

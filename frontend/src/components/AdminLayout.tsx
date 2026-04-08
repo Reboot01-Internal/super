@@ -86,6 +86,7 @@ export default function AdminLayout({
   const nav = useNavigate();
   const { isAdmin, isSupervisor, login, email, logout } = useAuth();
   const { hasUnread } = useNotifications();
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   const baseName = login || email || "User";
   const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
   const [avatarUrl, setAvatarUrl] = useState(() => getCachedRebootAvatar(avatarLogin));
@@ -120,10 +121,21 @@ export default function AdminLayout({
     };
   }, [avatarLogin, avatarUrl]);
 
+  useEffect(() => {
+    if (!adminSidebarOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAdminSidebarOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [adminSidebarOpen]);
+
   const nonAdminNav =
     !isAdmin ? (
-      <aside className="sticky top-[22px] self-start">
-        <div className="flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+      <aside className="sticky top-[22px] self-start max-[1050px]:top-0 max-[1050px]:w-full">
+        <div className="flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] max-[1050px]:min-h-0 max-[1050px]:w-full">
           <div className="flex flex-col gap-3">
             <button
               type="button"
@@ -250,16 +262,48 @@ export default function AdminLayout({
     <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
       <div
         className={cn(
-          "grid min-h-screen",
+          "grid min-h-screen min-w-0",
           isAdmin
             ? "grid-cols-[242px_1fr] gap-5 max-[1050px]:grid-cols-1"
             : "grid-cols-[242px_1fr] gap-5 max-[1050px]:grid-cols-1"
         )}
       >
-        {isAdmin ? <AdminSidebar active={active} /> : null}
+        {isAdmin ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setAdminSidebarOpen(true)}
+              className="fixed left-3 top-4 z-40 hidden h-11 w-11 place-items-center rounded-[8px] border border-[#6d5efc]/25 bg-white text-[#6d5efc] shadow-[0_12px_30px_rgba(15,23,42,0.16)] transition hover:bg-[#f3f1ff] max-[1050px]:grid"
+              aria-label="Open sidebar"
+              aria-expanded={adminSidebarOpen}
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            <div className="max-[1050px]:hidden">
+              <AdminSidebar active={active} />
+            </div>
+
+            {adminSidebarOpen ? (
+              <div className="fixed inset-0 z-50 hidden max-[1050px]:block" role="dialog" aria-modal="true" aria-label="Sidebar navigation">
+                <button
+                  type="button"
+                  className="absolute inset-0 h-full w-full bg-slate-950/35"
+                  aria-label="Close sidebar"
+                  onClick={() => setAdminSidebarOpen(false)}
+                />
+                <div className="relative h-full w-[260px] max-w-[82vw]">
+                  <AdminSidebar active={active} drawer onNavigate={() => setAdminSidebarOpen(false)} />
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
         {!isAdmin ? nonAdminNav : null}
 
-        <main className={cn("px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[22px]")}>
+        <main className={cn("min-w-0 px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[72px] max-[520px]:px-3")}>
           <header className="mb-4 flex items-start justify-between gap-3 max-[1050px]:flex-col">
             <div>
               <div className="text-[13px] font-bold text-slate-500">Welcome back</div>
@@ -267,7 +311,7 @@ export default function AdminLayout({
               {subtitle ? <div className="mt-1 text-[14px] font-semibold text-slate-500">{subtitle}</div> : null}
             </div>
 
-            <div className="flex items-center gap-2 justify-end max-[1050px]:w-full">
+            <div className="flex max-w-full flex-wrap items-center gap-2 justify-end max-[1050px]:w-full max-[1050px]:justify-start">
               {right}
             </div>
           </header>

@@ -597,7 +597,7 @@ export default function MeetingsCalendarPage() {
           <select
             value={selectedSupervisorFilter}
             onChange={(e) => setSelectedSupervisorFilter(e.target.value)}
-            className="h-11 min-w-[220px] rounded-[14px] border border-slate-200 bg-white px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300"
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-slate-200 bg-white px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300 sm:min-w-[220px] sm:flex-none"
           >
             <option value="all">All supervisors</option>
             {supervisorOptions.map((supervisor) => (
@@ -607,7 +607,7 @@ export default function MeetingsCalendarPage() {
           <select
             value={selectedBoardFilter}
             onChange={(e) => setSelectedBoardFilter(e.target.value)}
-            className="h-11 min-w-[220px] rounded-[14px] border border-slate-200 bg-white px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300"
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-slate-200 bg-white px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300 sm:min-w-[220px] sm:flex-none"
           >
             <option value="all">All boards</option>
             {filteredBoardOptions.map((board) => (

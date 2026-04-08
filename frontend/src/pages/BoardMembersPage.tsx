@@ -510,7 +510,7 @@ export default function BoardMembersPage() {
       }
     >
       <div className="w-full max-w-full overflow-x-hidden">
-        <section className="grid min-w-0 h-[calc(100vh-220px)] grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <section className="grid min-w-0 h-auto grid-cols-1 gap-4 lg:h-[calc(100vh-220px)] lg:grid-cols-[1.2fr_1fr]">
           <div className="grid min-h-0 gap-4">
             <section className="flex min-h-0 flex-col rounded-[18px] border border-slate-200 bg-white px-4 pb-4 pt-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
@@ -534,7 +534,7 @@ export default function BoardMembersPage() {
                 }
               }}
             >
-              <div className="flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+              <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:min-w-[220px]">
                 <span className="text-slate-500">
                   <SearchIcon />
                 </span>
@@ -547,7 +547,7 @@ export default function BoardMembersPage() {
               </div>
 
               <select
-                className="h-11 w-[170px] rounded-2xl border border-slate-200 bg-white/90 px-3 text-[14px] font-bold text-slate-900 outline-none shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-white/90 px-3 text-[14px] font-bold text-slate-900 outline-none shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[170px]"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as any)}
                 disabled={isSupervisor}
