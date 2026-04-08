@@ -595,7 +595,7 @@ export default function MeetingsCalendarPage() {
             </div>
           </div>
 
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-4 gap-2 sm:grid-cols-2 lg:gap-3">
             <StatCard label="Total" value={stats.total} tone="amber" />
             <StatCard label="Upcoming" value={stats.upcoming} tone="emerald" />
             <StatCard label="This month" value={stats.thisMonth} tone="violet" />
@@ -987,9 +987,9 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
     "border-rose-200 bg-rose-50 text-rose-700";
 
   return (
-    <div className={`rounded-[20px] border px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ${toneClass}`}>
-      <div className="text-[11px] font-black uppercase tracking-[0.12em]">{label}</div>
-      <div className="mt-2 text-[28px] font-black tracking-[-0.04em]">{value}</div>
+    <div className={`min-w-0 rounded-[20px] border px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] max-[520px]:rounded-[12px] max-[520px]:px-2 max-[520px]:py-2.5 ${toneClass}`}>
+      <div className="truncate text-[11px] font-black uppercase tracking-[0.12em] max-[520px]:text-[8px] max-[520px]:tracking-[0.02em]">{label}</div>
+      <div className="mt-2 text-[28px] font-black tracking-[-0.04em] max-[520px]:mt-1 max-[520px]:text-[18px]">{value}</div>
     </div>
   );
 }
