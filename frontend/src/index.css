@@ -338,6 +338,23 @@ body, button, input, select, textarea {
   color: #c9f5dc !important;
 }
 
+.admin-dark .dashboard-page [class*="border"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .dashboard-page [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.admin-dark .dashboard-stat-card {
+  background: #151f32 !important;
+}
+
+.admin-dark .dashboard-stat-card [class~="bg-slate-50"] {
+  background: #1c2a43 !important;
+  background-color: #1c2a43 !important;
+}
+
 .admin-dark .boards-page [class*="text-slate-900/"],
 .admin-dark .boards-page [class*="text-slate-800/"],
 .admin-dark .boards-page [class*="text-slate-700/"] {

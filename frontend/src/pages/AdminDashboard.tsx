@@ -115,7 +115,7 @@ function StatCard({
   subtitle?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:rounded-[12px] max-[520px]:p-2.5">
+    <div className="dashboard-stat-card min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:rounded-[12px] max-[520px]:p-2.5">
       <div className="flex items-start justify-between gap-3 max-[520px]:block">
         <div className="min-w-0">
           <div className="truncate text-xs font-extrabold text-slate-500 max-[520px]:text-[9px]">{label}</div>
@@ -194,60 +194,61 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout active="dashboard" title="Admin Dashboard" subtitle="Manage users and supervise the system.">
-      <section className="grid min-w-0 grid-cols-1 gap-3.5 max-[520px]:grid-cols-4 max-[520px]:gap-2 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Supervisors"
-          value={statsLoading ? "..." : totalSupervisors}
-          icon={
-            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-              <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="10" cy="8" r="3.5" stroke="#2563eb" strokeWidth="2" />
-              <path d="M20 20v-1.5A3.5 3.5 0 0 0 17 15.1" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-              <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Talents"
-          value={statsLoading ? "..." : studentCount}
-          icon={
-            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-              <path d="M12 3l10 5-10 5L2 8l10-5Z" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
-              <path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
-              <path d="M22 8v6" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Boards"
-          value={statsLoading ? "..." : boardsCount}
-          icon={
-            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-              <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
-              <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Cards"
-          value={statsLoading ? "..." : cardsCount}
-          icon={
-            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-              <rect x="6" y="5" width="12" height="14" rx="2.5" stroke="#f59e0b" strokeWidth="2" />
-              <path d="M9 9h6M9 13h6" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          }
-        />
-        {/* <StatCard
-          label="Admin"
-          value="System"
-          subtitle="You're managing the platform"
-          icon={<span className="h-[18px] w-[18px] rounded-full border-2 border-slate-300 border-t-violet-500 animate-spin" />}
-        /> */}
-      </section>
+      <div className="dashboard-page">
+        <section className="grid min-w-0 grid-cols-1 gap-3.5 max-[520px]:grid-cols-4 max-[520px]:gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Supervisors"
+            value={statsLoading ? "..." : totalSupervisors}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+                <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="10" cy="8" r="3.5" stroke="#2563eb" strokeWidth="2" />
+                <path d="M20 20v-1.5A3.5 3.5 0 0 0 17 15.1" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+                <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Talents"
+            value={statsLoading ? "..." : studentCount}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+                <path d="M12 3l10 5-10 5L2 8l10-5Z" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+                <path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+                <path d="M22 8v6" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Boards"
+            value={statsLoading ? "..." : boardsCount}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
+                <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Cards"
+            value={statsLoading ? "..." : cardsCount}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+                <rect x="6" y="5" width="12" height="14" rx="2.5" stroke="#f59e0b" strokeWidth="2" />
+                <path d="M9 9h6M9 13h6" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            }
+          />
+          {/* <StatCard
+            label="Admin"
+            value="System"
+            subtitle="You're managing the platform"
+            icon={<span className="h-[18px] w-[18px] rounded-full border-2 border-slate-300 border-t-violet-500 animate-spin" />}
+          /> */}
+        </section>
 
-      <section className="mt-3.5 grid min-w-0 grid-cols-1 gap-3.5 xl:grid-cols-2">
-        <div className="grid min-w-0">
+        <section className="mt-3.5 grid min-w-0 grid-cols-1 gap-3.5 xl:grid-cols-2">
+          <div className="grid min-w-0">
           <div className="relative h-[500px] w-full max-w-[500px] rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[760px]:h-auto max-[520px]:p-4">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -291,9 +292,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
 
-        <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:p-4">
+          <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:p-4">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <div className="text-xs font-extrabold text-slate-500">Task Completion</div>
@@ -360,8 +361,9 @@ export default function AdminDashboard() {
               <span className="font-black text-slate-700">{statsLoading ? "..." : `${onTimeCount} / ${totalTrackedItems}`}</span>
             </div>
           </div>
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
     </AdminLayout>
   );
 }
