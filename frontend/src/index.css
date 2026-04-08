@@ -451,6 +451,87 @@ body, button, input, select, textarea {
   border-color: var(--admin-border) !important;
 }
 
+.admin-dark .workspace-page [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.admin-dark .workspace-page [class*="border"] {
+  border-color: #25324a !important;
+}
+
+.admin-dark .workspace-panel {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .workspace-secondary-button {
+  background: #111a2c !important;
+  border-color: #25324a !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .workspace-secondary-button:hover {
+  background: #151f32 !important;
+}
+
+.admin-dark .workspace-page input,
+.admin-dark .workspace-page select {
+  background: #151f32 !important;
+  border-color: #2a3852 !important;
+}
+
+.admin-dark .workspace-page input:focus,
+.admin-dark .workspace-page select:focus {
+  border-color: #3b4d6e !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .workspace-page [class~="bg-slate-50"] {
+  background: #151f32 !important;
+  background-color: #151f32 !important;
+}
+
+.admin-dark .workspace-page [class~="bg-white/90"] {
+  background: #1c2a43 !important;
+  background-color: #1c2a43 !important;
+}
+
+.admin-dark .workspace-page [class~="bg-violet-50"] {
+  background: #1c2a43 !important;
+  background-color: #1c2a43 !important;
+}
+
+.admin-dark .workspace-page [class~="bg-amber-50"] {
+  background: #3b2d16 !important;
+  background-color: #3b2d16 !important;
+}
+
+.admin-dark .workspace-page [class~="bg-red-50"] {
+  background: #311b24 !important;
+  background-color: #311b24 !important;
+}
+
+.admin-dark .workspace-soft-pill {
+  background: #263855 !important;
+  border-color: #405478 !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .workspace-board-row {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+}
+
+.admin-dark .workspace-board-row:hover {
+  background: #111a2c !important;
+  border-color: #344665 !important;
+}
+
+.admin-dark .workspace-board-actions {
+  max-width: max-content;
+}
+
 body.admin-dark-theme .modalPanelIn {
   background: #0e1525 !important;
   border-color: #24304a !important;

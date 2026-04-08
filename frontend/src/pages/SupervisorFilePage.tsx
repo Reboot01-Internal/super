@@ -478,16 +478,17 @@ export default function SupervisorFilePage() {
         </div>
       }
     >
-      {!fileID ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
-          Could not resolve your workspace file yet. Ask admin to ensure your supervisor file exists.
-        </div>
-      ) : null}
+      <div className="workspace-page">
+        {!fileID ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+            Could not resolve your workspace file yet. Ask admin to ensure your supervisor file exists.
+          </div>
+        ) : null}
 
-      <section className="grid min-w-0 gap-4 lg:grid-cols-[1.25fr_0.95fr]">
+        <section className="grid min-w-0 gap-4 lg:grid-cols-[1.25fr_0.95fr]">
         {/* Left */}
         <div className="grid min-w-0 gap-4">
-          <section className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+          <section className="workspace-panel min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[16px] font-black tracking-[-0.2px] text-slate-900">
@@ -499,7 +500,7 @@ export default function SupervisorFilePage() {
                 {/* <div className="mt-2 text-[13px] text-slate-500">Name + optional description.</div> */}
               </div>
 
-              <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-black text-slate-900">
+              <span className="workspace-soft-pill rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-black text-slate-900">
                 New
               </span>
             </div>
@@ -563,7 +564,7 @@ export default function SupervisorFilePage() {
 
                 <button
                   type="button"
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+                  className="workspace-secondary-button h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
                   onClick={() => {
                     setName("");
                     setDescription("");
@@ -580,13 +581,13 @@ export default function SupervisorFilePage() {
 
         {/* Right */}
         <div className="grid min-w-0 gap-4">
-          <section className="min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+          <section className="workspace-panel min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[16px] font-black tracking-[-0.2px] text-slate-900">Boards</div>
                 <div className="mt-2 text-[13px] text-slate-500">Open a board or manage members.</div>
               </div>
-              <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-black text-slate-900">
+              <span className="workspace-soft-pill rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-black text-slate-900">
                 {loading ? "…" : boards.length}
               </span>
             </div>
@@ -616,7 +617,7 @@ export default function SupervisorFilePage() {
                     <div
                       key={b.id}
                       className={[
-                        "flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left",
+                        "workspace-board-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left",
                         "shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition",
                         "hover:-translate-y-[1px] hover:border-violet-200 hover:bg-violet-50/30 hover:shadow-[0_16px_32px_rgba(109,94,252,0.12)]",
                         "max-[520px]:flex-col max-[520px]:items-stretch",
@@ -627,7 +628,7 @@ export default function SupervisorFilePage() {
                           {initials(b.name)}
                         </div>
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           {editingBoardID === b.id ? (
                             <div className="flex min-w-0 items-center gap-2">
                               <input
@@ -652,7 +653,7 @@ export default function SupervisorFilePage() {
                           ) : (
                             <button
                               type="button"
-                              className="truncate text-left font-black text-slate-900 hover:text-violet-700"
+                              className="block max-w-full truncate text-left font-black text-slate-900 hover:text-violet-700"
                               title="Double click to edit name"
                               onDoubleClick={() => startRename(b)}
                             >
@@ -677,7 +678,7 @@ export default function SupervisorFilePage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-none flex-wrap items-center justify-end gap-2 max-[520px]:justify-start">
+                      <div className="workspace-board-actions flex min-w-max flex-none items-center justify-end gap-2 max-[520px]:min-w-0 max-[520px]:flex-wrap max-[520px]:justify-start">
                         <button
                           className="inline-flex h-8 items-center justify-center rounded-full border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[12px] font-black text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]"
                           type="button"
@@ -733,7 +734,8 @@ export default function SupervisorFilePage() {
             )}
           </section>
         </div>
-      </section>
+        </section>
+      </div>
     </AdminLayout>
     </>
   );
