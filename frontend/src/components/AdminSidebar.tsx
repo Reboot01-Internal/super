@@ -202,7 +202,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
                   </svg>
                 }
               />
-              <SidebarItem
+              {/* <SidebarItem
                 currentActive={active}
                 onNavigate={onNavigate}
                 id="supervisors"
@@ -216,7 +216,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
                     <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6" stroke="#6d5efc" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 }
-              />
+              /> */}
               <SidebarItem
                 currentActive={active}
                 onNavigate={onNavigate}

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
 import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 import { fetchRebootPhones } from "../lib/rebootPhones";
+import { useLocation, useNavigate } from "react-router-dom";
 // import "../admin.css";
 
 type User = {
@@ -126,6 +126,11 @@ export default function AssignPage() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
+  // const nav = useNavigate();
+const location = useLocation();
+
+const from = location.state?.from === "users" ? "users" : "supervisors";
+const backTo = location.state?.backTo || "/admin/supervisors";
 
   async function loadBase() {
     setErr("");
@@ -405,15 +410,19 @@ export default function AssignPage() {
 
   return (
     <AdminLayout
-      active="supervisors"
-      title="Assign talents"
-      subtitle="Select a supervisor, then assign multiple talents at once."
-      right={
-        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-          <BackButton onClick={() => nav("/admin/supervisors")} />
-       
-        </div>
-      }
+  active={from === "users" ? "users" : "supervisors"}
+  title="Assign Talents"
+  subtitle={from === "users" ? "Assign talents from the users flow" : "Assign talents to supervisors"}
+  right={
+    <button
+      type="button"
+      onClick={() => nav(backTo)}
+      className="inline-flex h-10 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+    >
+      Back
+    </button>
+  }
+
     >
       <div className="w-full max-w-full overflow-x-hidden">
         {err && (

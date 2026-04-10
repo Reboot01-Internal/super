@@ -783,6 +783,20 @@ export default function AdminUsersPage() {
               <UserPlusIcon size={15} />
               {createOpen ? "Close create users" : "Create users"}
             </button>
+                 <div className="flex items-center gap-2">
+<button
+  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
+  onClick={() =>
+    nav("/admin/assign", {
+      state: { from: "users", backTo: "/admin/users" },
+    })
+  }
+>
+  <UserPlusIcon size={15} />
+  Assign Talents
+</button>
+          {/* <BackButton onClick={() => nav("/admin")} /> */}
+        </div>
           </div>
         }
       >
