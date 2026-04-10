@@ -9,8 +9,8 @@ import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   right?: React.ReactNode;
   children: React.ReactNode;
 };

@@ -358,7 +358,7 @@ export default function CardModal({
     total?: number;
   }) => void;
 }) {
-  const { isAdmin, isSupervisor, isStudent } = useAuth();
+  const { isAdmin, isSupervisor } = useAuth();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -504,7 +504,6 @@ export default function CardModal({
   }, [assigneeOpen]);
 
   async function saveCard() {
-    if (!canManageCard) return;
     if (!card) return;
 
     setErr("");
@@ -920,7 +919,6 @@ export default function CardModal({
   const dueBadgeText = isOverdue ? "Overdue" : card?.due_date ? "Scheduled" : "None";
   const isDone = card?.status === "done";
   const canManageCard = isAdmin || isSupervisor;
-  const canToggleDone = canManageCard || isStudent;
   const canDeleteCard = canManageCard;
 
   function emitLiveUpdate(nextCard?: Card | null, nextSubtasks?: Subtask[]) {
@@ -938,33 +936,6 @@ export default function CardModal({
       done: sourceSubtasks.filter((s) => s.is_done).length,
       total: sourceSubtasks.length,
     });
-  }
-
-  async function toggleDoneFromModal() {
-    if (!card || !canToggleDone) return;
-    const prevCard = card;
-    const nextStatus: Card["status"] = prevCard.status === "done" ? "todo" : "done";
-    const nextCard = { ...prevCard, status: nextStatus };
-    setCard(nextCard);
-    emitLiveUpdate(nextCard);
-    if (nextStatus === "done") playDoneSound();
-    try {
-      await apiFetch("/admin/card", {
-        method: "PUT",
-        body: JSON.stringify({
-          card_id: prevCard.id,
-          title: prevCard.title?.trim() || "",
-          description: prevCard.description || "",
-          due_date: prevCard.due_date || "",
-          status: nextStatus,
-          priority: prevCard.priority || "medium",
-        }),
-      });
-    } catch (e: any) {
-      setErr(e?.message || "Failed to update status");
-      setCard(prevCard);
-      emitLiveUpdate(prevCard);
-    }
   }
 
   return (
@@ -987,17 +958,9 @@ export default function CardModal({
               <TrashIcon size={18} />
             </button>
           )}
-          <button
-            className="h-9 rounded-[10px] px-4 text-[14px] font-extrabold text-white shadow-sm bg-gradient-to-r from-[#6d5efc] to-[#9a8cff] hover:brightness-105"
-            onClick={onClose}
-          >
-            Done
+          <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
+            {saving ? "Saving..." : "Save"}
           </button>
-          {canManageCard && (
-            <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
-              {saving ? "Saving..." : "Save"}
-            </button>
-          )}
         </>
       }
     >
@@ -1023,54 +986,16 @@ export default function CardModal({
               <div className="dropdownAnim max-h-[62vh] overflow-y-auto overflow-x-hidden pr-[2px]">
                 <div className="grid items-start gap-2.5 xl:grid-cols-[1.25fr_0.95fr]">
                   <div className="grid gap-2.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`${pillBase} ${pillStatusClass(card.status)}`}>
-                        <CheckIcon size={12} />
-                        {isDone ? "Done" : "Open"}
-                      </span>
-                      {canToggleDone ? (
-                        <button
-                          type="button"
-                          className={`${pillBase} border-[#6d5efc]/30 bg-[#6d5efc]/10 text-slate-900 hover:bg-[#6d5efc]/15`}
-                          onClick={toggleDoneFromModal}
-                        >
-                          <CheckIcon size={12} />
-                          {isDone ? "Mark open" : "Mark done"}
-                        </button>
-                      ) : null}
-                      <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>{prettyPriority(card.priority)}</span>
-                      {canManageCard ? (
-                        <select
-                          className="h-7 rounded-full border border-slate-300 bg-white px-2.5 text-[12px] font-extrabold text-slate-700"
-                          value={card.priority}
-                          onChange={(e) => setCard({ ...card, priority: e.target.value as Card["priority"] })}
-                          title="Priority"
-                        >
-                          <option value="low">Low</option>
-                          <option value="medium">Medium</option>
-                          <option value="high">High</option>
-                          <option value="urgent">Urgent</option>
-                        </select>
-                      ) : null}
-                      {/* <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
-                        Mark done from board card
-                      </span> */}
-                    </div>
-
                     <div className="grid gap-2 xl:grid-cols-12">
                       <div className={`${section} xl:col-span-7`}>
                         <div className={sectionHead}>
                           <div className={sectionTitle}>Title</div>
-                          <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
-                            #{card.id}
-                          </span>
                         </div>
                         <input
                           className={inputBase}
                           value={card.title}
                           onChange={(e) => setCard({ ...card, title: e.target.value })}
                           placeholder="Card title"
-                          disabled={!canManageCard}
                         />
                       </div>
 
@@ -1094,17 +1019,35 @@ export default function CardModal({
                             type="date"
                             value={card.due_date || ""}
                             onChange={(e) => setCard({ ...card, due_date: e.target.value })}
-                            disabled={!canManageCard}
                           />
                           <button
                             className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50"
                             type="button"
                             onClick={() => setCard({ ...card, due_date: "" })}
-                            disabled={!canManageCard}
                           >
                             Clear
                           </button>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className={section}>
+                      <div className="grid gap-2">
+                        <div className={sectionHead}>
+                          <div className={sectionTitle}>Priority</div>
+                          <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>{prettyPriority(card.priority)}</span>
+                        </div>
+                        <select
+                          className={inputBase}
+                          value={card.priority}
+                          onChange={(e) => setCard({ ...card, priority: e.target.value as Card["priority"] })}
+                          title="Priority"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
                       </div>
                     </div>
 
@@ -1118,7 +1061,6 @@ export default function CardModal({
                         onChange={(e) => setCard({ ...card, description: e.target.value })}
                         placeholder="Notes, requirements, links..."
                         rows={4}
-                        disabled={!canManageCard}
                       />
                     </div>
 

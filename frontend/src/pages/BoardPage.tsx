@@ -610,6 +610,9 @@ export default function BoardPage() {
   const [membersErr, setMembersErr] = useState("");
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
+  const [isEditingBoardTitle, setIsEditingBoardTitle] = useState(false);
+  const [boardTitleDraft, setBoardTitleDraft] = useState("");
+  const [renamingBoard, setRenamingBoard] = useState(false);
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
 
@@ -687,6 +690,12 @@ export default function BoardPage() {
     loadPreviews(data.cards);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.board_id]);
+
+  useEffect(() => {
+    if (!isEditingBoardTitle) {
+      setBoardTitleDraft(data?.name || "");
+    }
+  }, [data?.name, isEditingBoardTitle]);
 
   const listsSorted = useMemo(() => {
     if (!data) return [];
@@ -794,6 +803,54 @@ export default function BoardPage() {
       setErr(e?.message || "Failed to rename list");
       if (previous) setData(previous);
       return false;
+    }
+  }
+
+  function startBoardRename() {
+    if (!canManage || !data) return;
+    setErr("");
+    setBoardTitleDraft(data.name || "");
+    setIsEditingBoardTitle(true);
+  }
+
+  function cancelBoardRename() {
+    setIsEditingBoardTitle(false);
+    setBoardTitleDraft(data?.name || "");
+    setRenamingBoard(false);
+  }
+
+  async function saveBoardRename() {
+    if (!data) return;
+    const next = boardTitleDraft.trim();
+    if (!next) {
+      setErr("Board name cannot be empty.");
+      return;
+    }
+    if (renamingBoard) return;
+    if (next === (data.name || "").trim()) {
+      cancelBoardRename();
+      return;
+    }
+
+    const previous = data.name;
+    setRenamingBoard(true);
+    setErr("");
+    setData((prev) => (prev ? { ...prev, name: next } : prev));
+
+    try {
+      await apiFetch("/admin/boards/update", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: boardID,
+          name: next,
+        }),
+      });
+      setIsEditingBoardTitle(false);
+    } catch (e: any) {
+      setErr(e?.message || "Failed to update board name");
+      setData((prev) => (prev ? { ...prev, name: previous } : prev));
+    } finally {
+      setRenamingBoard(false);
     }
   }
 
@@ -1005,7 +1062,38 @@ export default function BoardPage() {
     {confirmDialog}
     <AdminLayout
       active={layoutActive}
-      title={pageTitle}
+      title={
+        isEditingBoardTitle ? (
+          <input
+            autoFocus
+            value={boardTitleDraft}
+            maxLength={60}
+            disabled={renamingBoard}
+            onChange={(e) => setBoardTitleDraft(e.target.value)}
+            onBlur={() => void saveBoardRename()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void saveBoardRename();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelBoardRename();
+              }
+            }}
+            className="h-11 w-full max-w-[420px] rounded-[14px] border border-[#6d5efc]/30 bg-white px-3.5 text-[28px] font-black tracking-[-0.6px] text-slate-900 outline-none shadow-[0_10px_26px_rgba(109,94,252,0.10)] focus:ring-4 focus:ring-[#6d5efc]/15"
+            placeholder="Board name"
+          />
+        ) : (
+          <button
+            type="button"
+            onDoubleClick={startBoardRename}
+            className="max-w-full truncate text-left text-[28px] font-black tracking-[-0.6px] text-slate-900"
+            title={canManage ? "Double click to edit board name" : pageTitle}
+          >
+            {pageTitle}
+          </button>
+        )
+      }
       subtitle="Drag cards across lists. Double click a card to open."
       right={
         <div className="flex items-center gap-2">
