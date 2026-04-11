@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import Modal, { useEscClose } from "../components/Modal";
@@ -31,6 +31,39 @@ type BoardMember = {
 };
 
 type ViewMode = "boards" | "lists";
+
+const ADMIN_BOARDS_STATE_KEY = "taskflow.adminBoards.state";
+
+type AdminBoardsPageState = {
+  search: string;
+  viewMode: ViewMode;
+  scrollY: number;
+};
+
+function readAdminBoardsPageState(): AdminBoardsPageState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(ADMIN_BOARDS_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      search: String(parsed?.search || ""),
+      viewMode: parsed?.viewMode === "lists" ? "lists" : "boards",
+      scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeAdminBoardsPageState(state: AdminBoardsPageState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(ADMIN_BOARDS_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage failures.
+  }
+}
 
 type SupervisorOption = {
   supervisor_user_id: number;
@@ -400,10 +433,12 @@ function SkeletonCard() {
 
 export default function AdminBoardsPage() {
   const nav = useNavigate();
+  const initialPageState = useRef<AdminBoardsPageState | null>(readAdminBoardsPageState());
+  const hasRestoredScroll = useRef(false);
   const [boards, setBoards] = useState<BoardRow[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>("boards");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialPageState.current?.viewMode || "boards");
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialPageState.current?.search || "");
   const [err, setErr] = useState("");
   const [membersOpen, setMembersOpen] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -640,6 +675,27 @@ export default function AdminBoardsPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    writeAdminBoardsPageState({
+      search,
+      viewMode,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+    });
+  }, [search, viewMode]);
+
+  useEffect(() => {
+    function handleScroll() {
+      writeAdminBoardsPageState({
+        search,
+        viewMode,
+        scrollY: window.scrollY,
+      });
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [search, viewMode]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return boards;
@@ -652,6 +708,17 @@ export default function AdminBoardsPage() {
     });
   }, [boards, search]);
 
+  useEffect(() => {
+    if (loading || hasRestoredScroll.current === true) return;
+    const nextScrollY = Math.max(0, Number(initialPageState.current?.scrollY || 0));
+    hasRestoredScroll.current = true;
+    if (nextScrollY > 0) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: nextScrollY, behavior: "auto" });
+      });
+    }
+  }, [filtered.length, loading]);
+
   const totals = useMemo(() => {
     const totalBoards = boards.length;
     const totalLists = boards.reduce((acc, b) => acc + (b.lists_count || 0), 0);
@@ -663,6 +730,15 @@ export default function AdminBoardsPage() {
     () => (selectedTrack ? PROJECTS_BY_TRACK[selectedTrack] : []),
     [selectedTrack]
   );
+
+  function openBoard(boardID: number) {
+    writeAdminBoardsPageState({
+      search,
+      viewMode,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+    });
+    nav(`/admin/boards/${boardID}?from=boards`);
+  }
 
   function renderMemberPreview(board: BoardRow, options?: { compact?: boolean }) {
     const compact = options?.compact ?? false;
@@ -1107,11 +1183,11 @@ export default function AdminBoardsPage() {
                   key={b.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => nav(`/admin/boards/${b.id}?from=boards`)}
+                  onClick={() => openBoard(b.id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      nav(`/admin/boards/${b.id}?from=boards`);
+                      openBoard(b.id);
                     }
                   }}
                   className="
@@ -1298,11 +1374,11 @@ export default function AdminBoardsPage() {
                     key={b.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => nav(`/admin/boards/${b.id}?from=boards`)}
+                    onClick={() => openBoard(b.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        nav(`/admin/boards/${b.id}?from=boards`);
+                        openBoard(b.id);
                       }
                     }}
                     className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_188px] gap-4 px-5 py-4 transition hover:bg-[#faf8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15 max-[920px]:grid-cols-1"
