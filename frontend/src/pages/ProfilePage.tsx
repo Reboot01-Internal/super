@@ -340,19 +340,23 @@ export default function ProfilePage() {
     Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
   const isAdminViewingUser = role === "admin" && isTargetUserView;
   const isSupervisorViewingStudent = role === "supervisor" && isTargetUserView;
-  const adminLocationState = (location.state as { backTo?: string; preserveListState?: boolean } | null) || null;
+  const adminLocationState = (location.state as { backTo?: string; preserveListState?: boolean; preserveBoardsState?: boolean } | null) || null;
   const adminBackTo = isAdminViewingUser
     ? String(adminLocationState?.backTo || "/admin/users")
     : "";
   const shouldRestoreAdminUsersState =
     isAdminViewingUser && adminBackTo === "/admin/users" && !!adminLocationState?.preserveListState;
+  const shouldRestoreAdminBoardsState =
+    isAdminViewingUser && adminBackTo === "/admin/boards" && !!adminLocationState?.preserveBoardsState;
   const supervisorBackTo = isSupervisorViewingStudent
-    ? String((location.state as { backTo?: string } | null)?.backTo || "/users")
+    ? String((location.state as { backTo?: string; preserveBoardsState?: boolean } | null)?.backTo || "/users")
     : "";
   const activeSection = isAdminViewingUser
-    ? (adminBackTo === "/profile" ? "profile" : "users")
+    ? (adminBackTo === "/profile" ? "profile" : adminBackTo === "/admin/boards" ? "boards" : "users")
     : isSupervisorViewingStudent && supervisorBackTo === "/users"
     ? "users"
+    : isSupervisorViewingStudent && supervisorBackTo === "/admin/boards"
+    ? "boards"
     : "profile";
 
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
@@ -540,7 +544,7 @@ export default function ProfilePage() {
       }
       right={
         isAdminViewingUser ? (
-          <BackButton onClick={() => (shouldRestoreAdminUsersState ? nav(-1) : nav(adminBackTo))} />
+          <BackButton onClick={() => (shouldRestoreAdminUsersState || shouldRestoreAdminBoardsState ? nav(-1) : nav(adminBackTo))} />
         ) : isSupervisorViewingStudent ? (
           <BackButton onClick={() => nav(supervisorBackTo)} />
         ) : null

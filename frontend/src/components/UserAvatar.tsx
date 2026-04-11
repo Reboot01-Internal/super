@@ -109,28 +109,31 @@ export default function UserAvatar({
       {open && src && imgLoaded && !imgFailed && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/72 p-4 backdrop-blur-[4px]"
+              className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/70 p-4"
               onClick={() => setOpen(false)}
               role="dialog"
               aria-modal="true"
               aria-label={`${alt} image preview`}
             >
               <div
-                className="relative flex max-h-[92vh] w-full max-w-[720px] items-center justify-center rounded-[28px] border border-white/18 bg-white/8 p-4 shadow-[0_30px_100px_rgba(15,23,42,0.45)]"
+                className="max-w-[min(92vw,520px)] rounded-[28px] border border-white/20 bg-white p-4 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
                 onClick={(event) => event.stopPropagation()}
               >
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full border border-white/18 bg-slate-900/55 text-xl font-black text-white transition hover:bg-slate-900/75"
-                  aria-label="Close image preview"
-                >
-                  ×
-                </button>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="truncate text-[16px] font-black text-slate-950">{alt}</div>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                    aria-label="Close image preview"
+                  >
+                    Close
+                  </button>
+                </div>
                 <img
                   src={src}
                   alt={alt}
-                  className="max-h-[82vh] w-auto max-w-full rounded-[22px] object-contain"
+                  className="max-h-[70vh] w-full rounded-[22px] object-contain"
                 />
               </div>
             </div>,

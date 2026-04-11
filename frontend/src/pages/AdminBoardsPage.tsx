@@ -38,6 +38,7 @@ type AdminBoardsPageState = {
   search: string;
   viewMode: ViewMode;
   scrollY: number;
+  membersBoardID: number | null;
 };
 
 function readAdminBoardsPageState(): AdminBoardsPageState | null {
@@ -50,6 +51,7 @@ function readAdminBoardsPageState(): AdminBoardsPageState | null {
       search: String(parsed?.search || ""),
       viewMode: parsed?.viewMode === "lists" ? "lists" : "boards",
       scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
+      membersBoardID: Number.isFinite(Number(parsed?.membersBoardID)) && Number(parsed.membersBoardID) > 0 ? Number(parsed.membersBoardID) : null,
     };
   } catch {
     return null;
@@ -435,6 +437,7 @@ export default function AdminBoardsPage() {
   const nav = useNavigate();
   const initialPageState = useRef<AdminBoardsPageState | null>(readAdminBoardsPageState());
   const hasRestoredScroll = useRef(false);
+  const hasRestoredMembersPopup = useRef(false);
   const [boards, setBoards] = useState<BoardRow[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>(initialPageState.current?.viewMode || "boards");
   const [loading, setLoading] = useState(true);
@@ -465,6 +468,7 @@ export default function AdminBoardsPage() {
   const [reassignBoard, setReassignBoard] = useState<BoardRow | null>(null);
   const [nextSupervisorID, setNextSupervisorID] = useState(0);
   const [reassigning, setReassigning] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState<{ src: string; name: string } | null>(null);
 
   const { isAdmin, isSupervisor } = useAuth();
 
@@ -610,14 +614,23 @@ export default function AdminBoardsPage() {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const canManageMembers = isAdmin || isSupervisor;
   const canDeleteBoards = isAdmin || isSupervisor;
-  const closeMembersModal = useCallback(() => setMembersOpen(false), []);
-  useEscClose(membersOpen, closeMembersModal);
+  const closeMembersModal = useCallback(() => {
+    setMembersOpen(false);
+    writeAdminBoardsPageState({
+      search,
+      viewMode,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+      membersBoardID: null,
+    });
+  }, [search, viewMode]);
+  useEscClose(membersOpen && !previewAvatar, closeMembersModal);
   const closeReassignModal = useCallback(() => {
     setReassignBoard(null);
     setNextSupervisorID(0);
     setReassigning(false);
   }, []);
   useEscClose(!!reassignBoard, closeReassignModal);
+  useEscClose(!!previewAvatar, () => setPreviewAvatar(null));
   const closeCreateModal = useCallback(() => {
     setCreateOpen(false);
     setCreatingBoard(false);
@@ -680,8 +693,13 @@ export default function AdminBoardsPage() {
       search,
       viewMode,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+      membersBoardID: membersOpen
+        ? membersBoard?.id || null
+        : hasRestoredMembersPopup.current
+          ? null
+          : initialPageState.current?.membersBoardID || null,
     });
-  }, [search, viewMode]);
+  }, [membersBoard, membersOpen, search, viewMode]);
 
   useEffect(() => {
     function handleScroll() {
@@ -689,12 +707,17 @@ export default function AdminBoardsPage() {
         search,
         viewMode,
         scrollY: window.scrollY,
+        membersBoardID: membersOpen
+          ? membersBoard?.id || null
+          : hasRestoredMembersPopup.current
+            ? null
+            : initialPageState.current?.membersBoardID || null,
       });
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [search, viewMode]);
+  }, [membersBoard, membersOpen, search, viewMode]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -719,6 +742,22 @@ export default function AdminBoardsPage() {
     }
   }, [filtered.length, loading]);
 
+  useEffect(() => {
+    if (loading || hasRestoredMembersPopup.current === true) return;
+    const boardID = Number(initialPageState.current?.membersBoardID || 0);
+    if (!boardID) {
+      hasRestoredMembersPopup.current = true;
+      return;
+    }
+    const board = boards.find((item) => item.id === boardID);
+    if (!board) {
+      hasRestoredMembersPopup.current = true;
+      return;
+    }
+    hasRestoredMembersPopup.current = true;
+    void openMembers(board);
+  }, [boards, loading]);
+
   const totals = useMemo(() => {
     const totalBoards = filtered.length;
     const totalLists = filtered.reduce((acc, b) => acc + (b.lists_count || 0), 0);
@@ -736,6 +775,7 @@ export default function AdminBoardsPage() {
       search,
       viewMode,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+      membersBoardID: membersOpen ? membersBoard?.id || null : null,
     });
     nav(`/admin/boards/${boardID}?from=boards`);
   }
@@ -826,6 +866,12 @@ export default function AdminBoardsPage() {
     setMembersOpen(true);
     setMembersErr("");
     setMembersLoading(true);
+    writeAdminBoardsPageState({
+      search,
+      viewMode,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+      membersBoardID: board.id,
+    });
     try {
       const res = await apiFetch(`/admin/board-members?board_id=${board.id}`);
       setMembers(Array.isArray(res) ? res : []);
@@ -835,6 +881,24 @@ export default function AdminBoardsPage() {
     } finally {
       setMembersLoading(false);
     }
+  }
+
+  function openMemberProfile(member: BoardMember) {
+    writeAdminBoardsPageState({
+      search,
+      viewMode,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+      membersBoardID: membersBoard?.id || null,
+    });
+    if (isAdmin) {
+      nav(`/admin/users/${member.user_id}/profile`, {
+        state: { backTo: "/admin/boards", preserveBoardsState: true },
+      });
+      return;
+    }
+    nav(`/profile/${member.user_id}`, {
+      state: { backTo: "/admin/boards", preserveBoardsState: true },
+    });
   }
 
   async function deleteBoard(board: BoardRow) {
@@ -1462,7 +1526,7 @@ export default function AdminBoardsPage() {
       {membersOpen && (
         <div
           className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
-          onClick={() => setMembersOpen(false)}
+          onClick={closeMembersModal}
         >
           <div
             className="board-members-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
@@ -1483,7 +1547,7 @@ export default function AdminBoardsPage() {
                     title="Edit members"
                     aria-label="Edit members"
                     onClick={() => {
-                      setMembersOpen(false);
+                      closeMembersModal();
                       nav(`/admin/boards/${membersBoard.id}/members`);
                     }}
                   >
@@ -1492,7 +1556,7 @@ export default function AdminBoardsPage() {
                 ) : null}
                 <button
                   className="board-popup-close h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
-                  onClick={() => setMembersOpen(false)}
+                  onClick={closeMembersModal}
                 >
                   Close
                 </button>
@@ -1516,17 +1580,37 @@ export default function AdminBoardsPage() {
                   return (
                   <div
                     key={m.user_id}
-                    className="board-member-row flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                    role="button"
+                    tabIndex={0}
+                    className="board-member-row flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 transition hover:border-[#6d5efc]/25 hover:bg-white hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
+                    onClick={() => openMemberProfile(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openMemberProfile(m);
+                      }
+                    }}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar
-                        src={avatarUrl}
-                        alt={m.full_name}
-                        fallback={initialsOf(m.full_name)}
-                        sizeClass="h-10 w-10"
-                        textClass="text-[12px]"
-                        className="bg-white"
-                      />
+                      <button
+                        type="button"
+                        className="rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
+                        title="Open member image"
+                        aria-label={`Open ${m.full_name} image`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (avatarUrl) setPreviewAvatar({ src: avatarUrl, name: m.full_name });
+                        }}
+                      >
+                        <UserAvatar
+                          src={avatarUrl}
+                          alt={m.full_name}
+                          fallback={initialsOf(m.full_name)}
+                          sizeClass="h-10 w-10"
+                          textClass="text-[12px]"
+                          className="bg-white"
+                        />
+                      </button>
                       <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
                       {m.nickname ? (
@@ -1552,6 +1636,33 @@ export default function AdminBoardsPage() {
           </div>
         </div>
       )}
+      {previewAvatar ? (
+        <div
+          className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/70 p-4"
+          onClick={() => setPreviewAvatar(null)}
+        >
+          <div
+            className="max-w-[min(92vw,520px)] rounded-[28px] border border-white/20 bg-white p-4 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="truncate text-[16px] font-black text-slate-950">{previewAvatar.name}</div>
+              <button
+                type="button"
+                className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                onClick={() => setPreviewAvatar(null)}
+              >
+                Close
+              </button>
+            </div>
+            <img
+              src={previewAvatar.src}
+              alt={previewAvatar.name}
+              className="max-h-[70vh] w-full rounded-[22px] object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
       <Modal
         open={createOpen}
         title="Create board"
