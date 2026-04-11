@@ -470,7 +470,7 @@ export default function AdminBoardsPage() {
   const [reassigning, setReassigning] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState<{ src: string; name: string } | null>(null);
 
-  const { isAdmin, isSupervisor } = useAuth();
+  const { email: authEmail, isAdmin, isSupervisor, login: authLogin } = useAuth();
 
   useEffect(() => {
     let alive = true;
@@ -554,7 +554,7 @@ export default function AdminBoardsPage() {
   }, [boards]);
 
   useEffect(() => {
-    if ((!createOpen && !reassignBoard) || !isAdmin) return;
+    if ((!createOpen && !reassignBoard) || (!isAdmin && !isSupervisor)) return;
     let alive = true;
 
     async function loadSupervisors() {
@@ -579,7 +579,21 @@ export default function AdminBoardsPage() {
     return () => {
       alive = false;
     };
-  }, [createOpen, isAdmin, reassignBoard]);
+  }, [createOpen, isAdmin, isSupervisor, reassignBoard]);
+
+  useEffect(() => {
+    if (!createOpen || !isSupervisor || selectedSupervisorID) return;
+    const email = String(authEmail || "").trim().toLowerCase();
+    const login = String(authLogin || "").trim().toLowerCase().replace(/^@/, "");
+    const currentSupervisor = supervisorOptions.find((supervisor) => {
+      const supervisorEmail = String(supervisor.email || "").trim().toLowerCase();
+      const supervisorLogin = String(supervisor.nickname || "").trim().toLowerCase().replace(/^@/, "");
+      return (email && supervisorEmail === email) || (login && supervisorLogin === login);
+    });
+    if (currentSupervisor) {
+      setSelectedSupervisorID(currentSupervisor.supervisor_user_id);
+    }
+  }, [authEmail, authLogin, createOpen, isSupervisor, selectedSupervisorID, supervisorOptions]);
 
   useEffect(() => {
     if (!createOpen || !selectedSupervisorID) {
@@ -1104,7 +1118,7 @@ export default function AdminBoardsPage() {
       title="Boards"
       subtitle={isSupervisor ? "Your boards and members" : "All boards across supervisors"}
       right={
-        isAdmin ? (
+        isAdmin || isSupervisor ? (
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
@@ -1172,19 +1186,6 @@ export default function AdminBoardsPage() {
                   Lists
                 </button>
               </div>
-
-              {isSupervisor ? (
-                <button
-                  type="button"
-                  onClick={() => nav("/workspace")}
-                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
-                  title="Workspace"
-                  aria-label="Open workspace"
-                >
-                  <BoardIcon size={16} />
-                  Workspace
-                </button>
-              ) : null}
             </div>
           </div>
 
@@ -1700,21 +1701,33 @@ export default function AdminBoardsPage() {
               <div className="grid gap-3">
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Supervisor</span>
-                  <select
-                    value={selectedSupervisorID || ""}
-                    onChange={(e) => {
-                      setSelectedSupervisorID(Number(e.target.value) || 0);
-                    }}
-                    disabled={supervisorsLoading}
-                    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
-                  >
-                    <option value="">{supervisorsLoading ? "Loading supervisors..." : "Select supervisor"}</option>
-                    {supervisorOptions.map((supervisor) => (
-                      <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
-                        {supervisor.nickname? `${supervisor.full_name} (@${supervisor.nickname})` : supervisor.full_name}
-                      </option>
-                    ))}
-                  </select>
+                  {isSupervisor ? (
+                    <div className="flex h-11 items-center rounded-[14px] border border-[#6d5efc]/18 bg-[#f7f5ff] px-3 text-[14px] font-black text-slate-900">
+                      {supervisorsLoading
+                        ? "Loading your workspace..."
+                        : selectedSupervisor
+                          ? selectedSupervisor.nickname
+                            ? `${selectedSupervisor.full_name} (@${selectedSupervisor.nickname})`
+                            : selectedSupervisor.full_name
+                          : "Your supervisor workspace"}
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedSupervisorID || ""}
+                      onChange={(e) => {
+                        setSelectedSupervisorID(Number(e.target.value) || 0);
+                      }}
+                      disabled={supervisorsLoading}
+                      className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
+                    >
+                      <option value="">{supervisorsLoading ? "Loading supervisors..." : "Select supervisor"}</option>
+                      {supervisorOptions.map((supervisor) => (
+                        <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
+                          {supervisor.nickname? `${supervisor.full_name} (@${supervisor.nickname})` : supervisor.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </label>
 
                 <div className="grid gap-3 sm:grid-cols-2">
