@@ -898,12 +898,26 @@ export default function AdminBoardsPage() {
   }
 
   function openMemberProfile(member: BoardMember) {
+    const memberEmail = String(member.email || "").trim().toLowerCase();
+    const memberLogin = String(member.nickname || "").trim().toLowerCase().replace(/^@/, "");
+    const currentEmail = String(authEmail || "").trim().toLowerCase();
+    const currentLogin = String(authLogin || "").trim().toLowerCase().replace(/^@/, "");
+    const isSelf =
+      (currentEmail && memberEmail === currentEmail) ||
+      (currentLogin && memberLogin === currentLogin);
+
     writeAdminBoardsPageState({
       search,
       viewMode,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: membersBoard?.id || null,
     });
+    if (isSelf) {
+      nav("/profile", {
+        state: { backTo: "/admin/boards", preserveBoardsState: true },
+      });
+      return;
+    }
     if (isAdmin) {
       nav(`/admin/users/${member.user_id}/profile`, {
         state: { backTo: "/admin/boards", preserveBoardsState: true },
@@ -1618,7 +1632,7 @@ export default function AdminBoardsPage() {
                         <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
                       ) : null}
                       <div className="truncate text-xs font-semibold text-slate-500">
-                        {phoneByLogin[String(m.nickname || m.email.split("@")[0] || "").trim().toLowerCase()] || "-"}
+                        {isAdmin ? phoneByLogin[String(m.nickname || m.email.split("@")[0] || "").trim().toLowerCase()] || "-" : m.email || "-"}
                       </div>
                     </div>
                     </div>

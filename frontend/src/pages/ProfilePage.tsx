@@ -248,6 +248,30 @@ function pickGenderFromAttrs(attrs: any): string {
       return "";
     }
   }
+  const scan = (value: any, key = ""): string => {
+    if (typeof value === "string") {
+      const normalizedKey = key.toLowerCase();
+      if ((normalizedKey.includes("gender") || normalizedKey.includes("sex")) && value.trim()) {
+        return value.trim();
+      }
+      return "";
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = scan(item, key);
+        if (found) return found;
+      }
+      return "";
+    }
+    if (value && typeof value === "object") {
+      for (const [nextKey, nextValue] of Object.entries(value)) {
+        const found = scan(nextValue, String(nextKey));
+        if (found) return found;
+      }
+    }
+    return "";
+  };
+
   if (typeof source === "object" && !Array.isArray(source)) {
     const candidates = [
       source.genders,
@@ -260,7 +284,7 @@ function pickGenderFromAttrs(attrs: any): string {
     const found = candidates.find((v) => typeof v === "string" && v.trim());
     if (found) return String(found).trim();
   }
-  return "";
+  return scan(source);
 }
 
 function pickPhoneFromAttrs(attrs: any): string {
@@ -340,7 +364,10 @@ export default function ProfilePage() {
     Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
   const isAdminViewingUser = role === "admin" && isTargetUserView;
   const isSupervisorViewingStudent = role === "supervisor" && isTargetUserView;
-  const adminLocationState = (location.state as { backTo?: string; preserveListState?: boolean; preserveBoardsState?: boolean } | null) || null;
+  const profileLocationState = (location.state as { backTo?: string; preserveListState?: boolean; preserveBoardsState?: boolean } | null) || null;
+  const ownBackTo = !isTargetUserView ? String(profileLocationState?.backTo || "") : "";
+  const shouldRestoreOwnBoardsState = !isTargetUserView && ownBackTo === "/admin/boards" && !!profileLocationState?.preserveBoardsState;
+  const adminLocationState = profileLocationState;
   const adminBackTo = isAdminViewingUser
     ? String(adminLocationState?.backTo || "/admin/users")
     : "";
@@ -356,6 +383,8 @@ export default function ProfilePage() {
     : isSupervisorViewingStudent && supervisorBackTo === "/users"
     ? "users"
     : isSupervisorViewingStudent && supervisorBackTo === "/admin/boards"
+    ? "boards"
+    : shouldRestoreOwnBoardsState
     ? "boards"
     : "profile";
 
@@ -547,6 +576,8 @@ export default function ProfilePage() {
           <BackButton onClick={() => (shouldRestoreAdminUsersState || shouldRestoreAdminBoardsState ? nav(-1) : nav(adminBackTo))} />
         ) : isSupervisorViewingStudent ? (
           <BackButton onClick={() => nav(supervisorBackTo)} />
+        ) : shouldRestoreOwnBoardsState ? (
+          <BackButton onClick={() => nav(-1)} />
         ) : null
       }
     >
