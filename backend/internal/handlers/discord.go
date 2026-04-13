@@ -14,7 +14,10 @@ import (
 	"taskflow/internal/models"
 )
 
-const discordSyncTimeout = 30 * time.Second
+const (
+	discordSyncTimeout         = 30 * time.Second
+	discordCategorySyncTimeout = 90 * time.Second
+)
 
 func (a *API) SyncAllBoardDiscordChannelsAsync() {
 	if a.discord == nil || !a.discord.Enabled() {
@@ -87,7 +90,7 @@ func (a *API) syncBoardDiscordChannel(boardID int64) bool {
 	}
 
 	categoryName := discordSupervisorName(board.SupervisorNickname, board.SupervisorFullName, board.Name)
-	categoryCtx, categoryCancel := context.WithTimeout(context.Background(), discordSyncTimeout)
+	categoryCtx, categoryCancel := context.WithTimeout(context.Background(), discordCategorySyncTimeout)
 	categoryID, err := a.discord.EnsureSupervisorCategory(categoryCtx, categoryName)
 	categoryCancel()
 	if err != nil {
