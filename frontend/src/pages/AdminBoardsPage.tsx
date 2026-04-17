@@ -26,6 +26,7 @@ type BoardMember = {
   full_name: string;
   nickname?: string;
   email: string;
+  cohort?: string;
   role: string;
   role_in_board: string;
 };
@@ -741,9 +742,16 @@ export default function AdminBoardsPage() {
       const name = (b.name ?? "").toLowerCase();
       const sup = (b.supervisor_name ?? "").toLowerCase();
       const desc = (b.description ?? "").toLowerCase();
-      return name.includes(q) || sup.includes(q) || desc.includes(q);
+      const memberCohorts = (membersByBoard[b.id] || [])
+        .map((member) => String(member.cohort || "").trim().toLowerCase())
+        .filter(Boolean);
+      const matchesCohort = memberCohorts.some((cohort) => {
+        const cohortLabel = `cohort ${cohort}`;
+        return cohort.includes(q) || cohortLabel.includes(q);
+      });
+      return name.includes(q) || sup.includes(q) || desc.includes(q) || matchesCohort;
     });
-  }, [boards, search]);
+  }, [boards, membersByBoard, search]);
 
   useEffect(() => {
     if (loading || hasRestoredScroll.current === true) return;
@@ -1155,7 +1163,7 @@ export default function AdminBoardsPage() {
 
               <input
                 className="flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
-                placeholder="Search boards, supervisors, or descriptions..."
+                placeholder="Search boards, supervisors, cohorts, or descriptions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -1248,7 +1256,7 @@ export default function AdminBoardsPage() {
             </div>
             <div className="text-[16px] font-black text-slate-900/90">No boards found</div>
             <div className="text-[13px] font-extrabold text-slate-900/58">
-              Try searching by <b>board name</b> or <b>supervisor</b>.
+              Try searching by <b>board name</b>, <b>supervisor</b>, or <b>cohort</b>.
             </div>
           </div>
         ) : viewMode === "boards" ? (

@@ -365,6 +365,7 @@ export default function ProfilePage() {
   const isAdminViewingUser = role === "admin" && isTargetUserView;
   const isSupervisorViewingStudent = role === "supervisor" && isTargetUserView;
   const profileLocationState = (location.state as { backTo?: string; preserveListState?: boolean; preserveBoardsState?: boolean } | null) || null;
+  const currentProfileBackTo = `${location.pathname}${location.search}`;
   const ownBackTo = !isTargetUserView ? String(profileLocationState?.backTo || "") : "";
   const shouldRestoreOwnBoardsState = !isTargetUserView && ownBackTo === "/admin/boards" && !!profileLocationState?.preserveBoardsState;
   const adminLocationState = profileLocationState;
@@ -452,8 +453,12 @@ export default function ProfilePage() {
           subtitle: `${b.students_count} talents`,
           group: "",
         }));
+  const loadedProfileMatchesTarget = !isTargetUserView || localProfile?.user?.id === targetUserID;
   const canViewPrivateNotes =
-    isTargetUserView && (role === "admin" || role === "supervisor") && localProfile?.user?.role === "student";
+    isTargetUserView &&
+    loadedProfileMatchesTarget &&
+    (role === "admin" || role === "supervisor") &&
+    localProfile?.user?.role === "student";
 
   useEffect(() => {
     let cancelled = false;
@@ -785,8 +790,8 @@ export default function ProfilePage() {
                         key={s.id}
                         type="button"
                         onClick={() => {
-                          if (role === "admin") nav(`/admin/users/${s.id}/profile`, { state: { backTo: "/profile" } });
-                          else if (role === "supervisor") nav(`/profile/${s.id}`, { state: { backTo: "/profile" } });
+                          if (role === "admin") nav(`/admin/users/${s.id}/profile`, { state: { backTo: currentProfileBackTo } });
+                          else if (role === "supervisor") nav(`/profile/${s.id}`, { state: { backTo: currentProfileBackTo } });
                         }}
                         className={[
                           "w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition",
