@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { API_URL, apiFetch, authHeaders } from "../lib/api";
@@ -39,6 +39,20 @@ type MeetingParticipant = {
   attendance_status: "pending" | "attended" | "late" | "missed";
   updated_at: string;
 };
+
+const MEETING_LOCATIONS = ["Online", "Sandbox", "Quest", "Pixel", "Bim"] as const;
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toLocalDateInput(date = new Date()) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function formatMeetingDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -108,8 +122,18 @@ export default function BoardMeetingsPage() {
   const [participantsLoading, setParticipantsLoading] = useState<Record<number, boolean>>({});
   const [selectedMeetingID, setSelectedMeetingID] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
   const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    location: "Online",
+    notes: "",
+    date: toLocalDateInput(),
+    start_time: "10:00",
+    end_time: "11:00",
+  });
 
   const loadParticipants = useCallback(async (meetingID: number) => {
     setParticipantsLoading((prev) => ({ ...prev, [meetingID]: true }));
@@ -198,6 +222,57 @@ export default function BoardMeetingsPage() {
     }
   }
 
+  function startCreateMeeting() {
+    setForm({
+      title: "",
+      location: "Online",
+      notes: "",
+      date: toLocalDateInput(),
+      start_time: "10:00",
+      end_time: "11:00",
+    });
+    setShowComposer(true);
+  }
+
+  function closeComposer() {
+    if (saving) return;
+    setShowComposer(false);
+  }
+
+  async function submitMeeting(e: FormEvent) {
+    e.preventDefault();
+    if (!boardID || Number.isNaN(boardID)) {
+      setError("This board could not be found.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const startsAt = new Date(`${form.date}T${form.start_time}`);
+      const endsAt = new Date(`${form.date}T${form.end_time}`);
+      const res = await apiFetch("/admin/meetings", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: boardID,
+          title: form.title.trim(),
+          location: form.location.trim(),
+          notes: form.notes.trim(),
+          starts_at: startsAt.toISOString(),
+          ends_at: endsAt.toISOString(),
+        }),
+      });
+      const createdID = Number((res as { id?: number })?.id || 0);
+      setShowComposer(false);
+      if (createdID) setSelectedMeetingID(createdID);
+      await load();
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to create meeting"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const pageTitle = board?.name ? `${board.name} Meetings` : `Board #${boardID} Meetings`;
 
   return (
@@ -207,6 +282,15 @@ export default function BoardMeetingsPage() {
       subtitle="All meetings for this board, with attendance, notes, and outcomes in one place."
       right={
         <div className="flex flex-wrap items-center gap-2">
+          {canManage ? (
+            <button
+              type="button"
+              onClick={startCreateMeeting}
+              className="h-10 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-4 text-[13px] font-black text-white shadow-[0_14px_34px_rgba(245,158,11,0.24)] transition hover:-translate-y-[1px]"
+            >
+              Book Meeting
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => nav(`/admin/boards/${boardID}`)}
@@ -233,42 +317,46 @@ export default function BoardMeetingsPage() {
       {loading ? (
         <div className="text-sm font-semibold text-slate-500">Loading board meetings...</div>
       ) : (
-        <div className="grid h-auto min-h-0 gap-4 xl:h-[calc(100vh-220px)]">
-          <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-[12px] font-black text-slate-700">
-                  <CalendarIcon size={14} />
-                  {meetings.length} Meetings
-                </span>
-                {selectedMeeting ? (
-                  <span className={`inline-flex h-9 items-center rounded-full border px-3 text-[12px] font-black ${statusTone(selectedMeeting.status)}`}>
-                    {selectedMeeting.status}
-                  </span>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                onClick={exportBoardMeetings}
-                disabled={exporting}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-extrabold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-              >
-                <DownloadIcon size={14} />
-                {exporting ? "Exporting..." : "Export calendar"}
-              </button>
-            </div>
-          </div>
-
+        <div className="grid h-auto min-h-0 gap-4">
           {meetings.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-slate-300 bg-white/80 px-6 py-12 text-center shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
-              <div className="text-[18px] font-black text-slate-900">No meetings for this board yet</div>
-              <div className="mt-2 text-sm font-semibold text-slate-500">
-                {canManage ? "Create the first meeting from the meetings calendar, then it will show up here." : "When meetings are scheduled for this board, their details will appear here."}
+            <div className="rounded-[26px] border border-dashed border-slate-300 bg-[radial-gradient(circle_at_top,_rgba(245,158,11,0.12),_transparent_44%),#ffffff] px-6 py-16 text-center shadow-[0_16px_40px_rgba(15,23,42,0.05)] max-[520px]:px-4 max-[520px]:py-12">
+              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-600 shadow-sm">
+                <CalendarIcon size={24} />
+              </div>
+              <div className="text-[20px] font-black tracking-[-0.02em] text-slate-900">No meetings for this board yet</div>
+              <div className="mx-auto mt-2 max-w-[520px] text-sm font-semibold leading-6 text-slate-500">
+                {canManage ? "Create the first meeting from here and it will appear in this board timeline." : "When meetings are scheduled for this board, their details will appear here."}
               </div>
             </div>
           ) : (
-            <div className="grid min-h-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+            <>
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-[12px] font-black text-slate-700">
+                      <CalendarIcon size={14} />
+                      {meetings.length} Meetings
+                    </span>
+                    {selectedMeeting ? (
+                      <span className={`inline-flex h-9 items-center rounded-full border px-3 text-[12px] font-black ${statusTone(selectedMeeting.status)}`}>
+                        {selectedMeeting.status}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={exportBoardMeetings}
+                    disabled={exporting}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-extrabold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 max-[520px]:w-full"
+                  >
+                    <DownloadIcon size={14} />
+                    {exporting ? "Exporting..." : "Export calendar"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid min-h-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:h-[calc(100vh-300px)]">
               <div className="min-h-0 rounded-[22px] border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] overflow-hidden">
                 <div className="mb-2 px-2 text-[12px] font-black uppercase tracking-[0.16em] text-slate-400">
                   Board timeline
@@ -393,10 +481,75 @@ export default function BoardMeetingsPage() {
                 </div>
               ) : null}
             </div>
+            </>
           )}
         </div>
       )}
+
+      {showComposer ? (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
+          <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">Book a meeting</div>
+                <div className="mt-1 max-w-[430px] text-[13px] font-semibold text-slate-500 max-[520px]:text-[12px]">
+                  This will be added to {board?.name || "this board"} and participants will sync from the board.
+                </div>
+              </div>
+              <button type="button" onClick={closeComposer} disabled={saving} className="h-10 shrink-0 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700 disabled:opacity-60">
+                Close
+              </button>
+            </div>
+
+            <form className="grid min-h-0 gap-4 overflow-y-auto pr-1" onSubmit={submitMeeting}>
+              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Board</div>
+                <div className="mt-1 truncate text-[15px] font-black text-slate-900">{board?.name || `Board #${boardID}`}</div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Meeting title">
+                  <input required value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" placeholder="Weekly check-in" />
+                </Field>
+                <Field label="Location">
+                  <select value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300">
+                    {MEETING_LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
+                  </select>
+                </Field>
+                <Field label="Date">
+                  <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
+                </Field>
+                <Field label="Start time">
+                  <input required type="time" value={form.start_time} onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
+                </Field>
+                <Field label="End time">
+                  <input required type="time" value={form.end_time} onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
+                </Field>
+              </div>
+
+              <Field label="Agenda / meeting notes">
+                <textarea value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="min-h-[96px] w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-amber-300" placeholder="Topics to cover, preparation notes, or room setup details." />
+              </Field>
+
+              <div className="flex justify-end max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
+                <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">
+                  {saving ? "Saving..." : "Create meeting"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </AdminLayout>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</span>
+      {children}
+    </label>
   );
 }
 

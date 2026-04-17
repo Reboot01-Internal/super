@@ -128,7 +128,7 @@ export default function App() {
 
       <Route
         path="/admin/boards/:boardId/meetings"
-        element={<RequireAdmin><BoardMeetingsPage /></RequireAdmin>}
+        element={<RequireManageBoards><BoardMeetingsPage /></RequireManageBoards>}
       />
 
       <Route

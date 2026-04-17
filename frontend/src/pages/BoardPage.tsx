@@ -1097,7 +1097,7 @@ export default function BoardPage() {
       subtitle="Drag cards across lists. Double click a card to open."
       right={
         <div className="flex items-center gap-2">
-          {isAdmin ? (
+          {canManage ? (
             <button
               className="board-detail-icon-button board-detail-icon-button-warning h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition"
               onClick={() => nav(`/admin/boards/${boardID}/meetings`)}
