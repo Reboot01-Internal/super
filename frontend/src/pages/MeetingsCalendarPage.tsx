@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
 import { API_URL, apiFetch, authHeaders } from "../lib/api";
@@ -190,6 +191,8 @@ function ChevronDownIcon({ size = 14 }: { size?: number }) {
 }
 
 export default function MeetingsCalendarPage() {
+  const nav = useNavigate();
+  const location = useLocation();
   const { role, email, login } = useAuth();
   const [resolvedRole, setResolvedRole] = useState<string>(role);
   const effectiveRole = resolvedRole || role;
@@ -199,6 +202,7 @@ export default function MeetingsCalendarPage() {
   const canManage = isEffectiveAdmin || isEffectiveSupervisor;
   const actorRole = effectiveRole;
   const { confirm, dialog: confirmDialog } = useConfirm();
+  const currentBackTo = `${location.pathname}${location.search}`;
 
   const [meetings, setMeetings] = useState<MeetingRow[]>([]);
   const [boards, setBoards] = useState<BoardRow[]>([]);
@@ -632,6 +636,17 @@ export default function MeetingsCalendarPage() {
     }
   }
 
+  function openUserProfile(userID: number) {
+    if (!userID) return;
+    if (isEffectiveAdmin) {
+      nav(`/admin/users/${userID}/profile`, { state: { backTo: currentBackTo } });
+      return;
+    }
+    if (isEffectiveSupervisor) {
+      nav(`/profile/${userID}`, { state: { backTo: currentBackTo } });
+    }
+  }
+
   async function exportCalendar() {
     setExporting(true);
     setError("");
@@ -969,8 +984,13 @@ export default function MeetingsCalendarPage() {
                       return (
                         <div key={participant.user_id} className="rounded-[14px] border border-slate-200 bg-white px-3 py-3">
                           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px] md:items-start">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <UserAvatar src={avatarUrl} alt={participant.full_name} fallback={initialsOf(participant.full_name)} sizeClass="h-10 w-10" textClass="text-[12px]" className="bg-slate-50" />
+                            <button
+                              type="button"
+                              onClick={() => openUserProfile(participant.user_id)}
+                              className="flex min-w-0 items-center gap-3 rounded-[12px] text-left transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
+                              title="Open profile"
+                            >
+                              <UserAvatar src={avatarUrl} alt={participant.full_name} fallback={initialsOf(participant.full_name)} sizeClass="h-10 w-10" textClass="text-[12px]" className="bg-slate-50" previewable />
                               <div className="min-w-0">
                                 <div className="text-[13px] font-black leading-5 text-slate-900">{participant.full_name}</div>
                                 <div className="mt-1 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
@@ -978,7 +998,7 @@ export default function MeetingsCalendarPage() {
                                   <span>{participant.role_in_board || participant.role}</span>
                                 </div>
                               </div>
-                            </div>
+                            </button>
                             <div className="md:justify-self-end">
                               <SelectField
                                 label="RSVP"
@@ -1100,13 +1120,19 @@ export default function MeetingsCalendarPage() {
                         {selectedBoardMembers.map((member) => {
                           const avatarUrl = avatarByLogin[loginOf(member)] || "";
                           return (
-                            <div key={member.user_id} className="flex min-w-0 items-center gap-3 rounded-[12px] border border-slate-200 bg-white px-3 py-2">
-                              <UserAvatar src={avatarUrl} alt={member.full_name} fallback={initialsOf(member.full_name)} sizeClass="h-9 w-9" textClass="text-[11px]" className="bg-slate-50" />
+                            <button
+                              key={member.user_id}
+                              type="button"
+                              onClick={() => openUserProfile(member.user_id)}
+                              className="flex min-w-0 items-center gap-3 rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#6d5efc]/25 hover:bg-[#f7f5ff] focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
+                              title="Open profile"
+                            >
+                              <UserAvatar src={avatarUrl} alt={member.full_name} fallback={initialsOf(member.full_name)} sizeClass="h-9 w-9" textClass="text-[11px]" className="bg-slate-50" previewable />
                               <div className="min-w-0">
                                 <div className="truncate text-[13px] font-black text-slate-900">{member.full_name}</div>
                                 <div className="truncate text-[11px] font-semibold text-slate-500">{member.nickname ? `@${member.nickname}` : member.email}</div>
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>

@@ -8,6 +8,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fetchRebootAvatar, fetchRebootAvatars } from "../lib/rebootAvatars";
 import { fetchRebootPhones } from "../lib/rebootPhones";
+import { useConfirm } from "../lib/useConfirm";
 
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
 const BAHRAIN_TIMEZONE = "Asia/Bahrain";
@@ -413,6 +414,7 @@ export default function ProfilePage() {
   const location = useLocation();
   const params = useParams<{ userId?: string }>();
   const { role, login: ownLogin, jwt } = useAuth();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const targetUserID = Number(params.userId || 0);
   const isTargetUserView =
     Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
@@ -460,6 +462,7 @@ export default function ProfilePage() {
   const [talentsLoading, setTalentsLoading] = useState(false);
   const [assignTalentErr, setAssignTalentErr] = useState("");
   const [assigningTalents, setAssigningTalents] = useState(false);
+  const [removingAssignedTalentID, setRemovingAssignedTalentID] = useState<number | null>(null);
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
   const [supervisorOptions, setSupervisorOptions] = useState<SupervisorOption[]>([]);
   const [supervisorsLoading, setSupervisorsLoading] = useState(false);
@@ -826,6 +829,33 @@ export default function ProfilePage() {
     }
   }
 
+  async function removeAssignedTalent(studentID: number, studentName: string) {
+    if (!canManageAssignedTalents || !localProfile?.user?.id || removingAssignedTalentID) return;
+    const ok = await confirm({
+      title: "Remove assigned talent",
+      message: `Remove ${studentName} from this supervisor?`,
+      confirmLabel: "Remove talent",
+      danger: true,
+    });
+    if (!ok) return;
+
+    setRemovingAssignedTalentID(studentID);
+    setErr("");
+    try {
+      await apiFetch("/admin/assign/remove", {
+        method: "POST",
+        body: JSON.stringify({ supervisor_id: localProfile.user.id, student_id: studentID }),
+      });
+      const { local, reboot } = await loadProfileData();
+      setLocalProfile(local);
+      setRebootProfile(reboot);
+    } catch (e: any) {
+      setErr(e?.message || "Failed to remove assigned talent");
+    } finally {
+      setRemovingAssignedTalentID(null);
+    }
+  }
+
   async function createProfileBoard() {
     if (!canCreateProfileBoard || !boardName.trim() || creatingBoard) return;
     if (!selectedProfileSupervisor?.file_id) {
@@ -940,6 +970,7 @@ export default function ProfilePage() {
         ) : null
       }
     >
+      {confirmDialog}
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">
           {err}
@@ -1237,6 +1268,22 @@ export default function ProfilePage() {
                                 )}
                               </div>
                             </div>
+                            {canManageAssignedTalents ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  void removeAssignedTalent(s.id, s.full_name);
+                                }}
+                                disabled={removingAssignedTalentID === s.id}
+                                className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-rose-200 bg-white text-rose-600 shadow-[0_6px_16px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                title={removingAssignedTalentID === s.id ? "Removing..." : "Remove assigned talent"}
+                                aria-label={removingAssignedTalentID === s.id ? "Removing assigned talent" : "Remove assigned talent"}
+                              >
+                                <BinIcon size={14} />
+                              </button>
+                            ) : null}
                           </div>
                         </button>
                       );
@@ -1764,6 +1811,17 @@ function BoardIcon({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
       <path d="M8 8h8M8 12h5M8 16h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BinIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

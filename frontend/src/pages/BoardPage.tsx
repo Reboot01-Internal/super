@@ -65,6 +65,15 @@ type BoardMember = {
   role_in_board: string;
 };
 
+type SupervisorOption = {
+  supervisor_user_id: number;
+  full_name: string;
+  email: string;
+  nickname?: string;
+  cohort?: string;
+  file_id: number;
+};
+
 function roleDisplay(role: string) {
   const normalized = String(role || "").trim().toLowerCase();
   if (normalized === "student") return "talent";
@@ -205,6 +214,15 @@ function BinIcon({ size = 14 }: { size?: number }) {
         strokeLinejoin="round"
       />
       <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ReassignIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 7h9m0 0-3-3m3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 17H7m0 0 3 3m-3-3 3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -640,6 +658,7 @@ export default function BoardPage() {
   const { boardId } = useParams();
   const boardID = Number(boardId);
   const { confirm, dialog: confirmDialog } = useConfirm();
+  const { isAdmin, isSupervisor } = useAuth();
 
   const [data, setData] = useState<BoardFull | null>(null);
   const [err, setErr] = useState("");
@@ -666,8 +685,19 @@ export default function BoardPage() {
   const [renamingBoard, setRenamingBoard] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [deletingBoard, setDeletingBoard] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [supervisorOptions, setSupervisorOptions] = useState<SupervisorOption[]>([]);
+  const [supervisorsLoading, setSupervisorsLoading] = useState(false);
+  const [nextSupervisorID, setNextSupervisorID] = useState(0);
+  const [reassigning, setReassigning] = useState(false);
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
+  const closeReassignModal = useCallback(() => {
+    setReassignOpen(false);
+    setNextSupervisorID(0);
+    setReassigning(false);
+  }, []);
+  useEscClose(reassignOpen, closeReassignModal);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -855,6 +885,71 @@ export default function BoardPage() {
       setErr(e?.message || "Failed to delete board");
     } finally {
       setDeletingBoard(false);
+    }
+  }
+
+  const eligibleSupervisors = useMemo(() => {
+    if (!data) return [];
+    return supervisorOptions.filter((supervisor) => supervisor.file_id !== data.supervisor_file_id);
+  }, [data, supervisorOptions]);
+
+  useEffect(() => {
+    if (!reassignOpen || !isAdmin) return;
+    let alive = true;
+
+    async function loadSupervisors() {
+      setSupervisorsLoading(true);
+      setErr("");
+      try {
+        const res = await apiFetch("/admin/supervisors");
+        if (!alive) return;
+        setSupervisorOptions(Array.isArray(res) ? (res as SupervisorOption[]) : []);
+      } catch (e: any) {
+        if (!alive) return;
+        setSupervisorOptions([]);
+        setErr(e?.message || "Failed to load supervisors");
+      } finally {
+        if (alive) setSupervisorsLoading(false);
+      }
+    }
+
+    void loadSupervisors();
+    return () => {
+      alive = false;
+    };
+  }, [isAdmin, reassignOpen]);
+
+  useEffect(() => {
+    if (!reassignOpen || nextSupervisorID || eligibleSupervisors.length === 0) return;
+    setNextSupervisorID(eligibleSupervisors[0].supervisor_user_id);
+  }, [eligibleSupervisors, nextSupervisorID, reassignOpen]);
+
+  function openReassignModal() {
+    if (!isAdmin || !data) return;
+    const firstEligible = supervisorOptions.find((supervisor) => supervisor.file_id !== data.supervisor_file_id);
+    setErr("");
+    setReassignOpen(true);
+    setNextSupervisorID(firstEligible?.supervisor_user_id || 0);
+  }
+
+  async function submitReassign() {
+    if (!data || !nextSupervisorID || reassigning) return;
+
+    setReassigning(true);
+    setErr("");
+    try {
+      await apiFetch("/admin/boards/reassign", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: boardID,
+          supervisor_user_id: nextSupervisorID,
+        }),
+      });
+      closeReassignModal();
+      await load();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to reassign board ownership");
+      setReassigning(false);
     }
   }
 
@@ -1125,7 +1220,6 @@ export default function BoardPage() {
 
   const pageTitle = data ? data.name : `Board #${boardID}`;
   const from = new URLSearchParams(location.search).get("from");
-  const { isAdmin, isSupervisor } = useAuth();
 
   useEffect(() => {
     let alive = true;
@@ -1237,6 +1331,18 @@ export default function BoardPage() {
               <CalendarIcon />
             </button>
           ) : null}
+          {isAdmin ? (
+            <button
+              type="button"
+              className="board-detail-icon-button h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={openReassignModal}
+              disabled={reassigning}
+              title="Reassign board ownership"
+              aria-label="Reassign board ownership"
+            >
+              <ReassignIcon />
+            </button>
+          ) : null}
           <button
             className="board-detail-icon-button board-detail-icon-button-success h-10 w-10 grid place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
             onClick={openMembersModal}
@@ -1281,6 +1387,85 @@ export default function BoardPage() {
         }}
         onLiveUpdate={applyLiveCardUpdate}
       />
+      {reassignOpen && data ? (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
+          onClick={closeReassignModal}
+        >
+          <div
+            className="workspace-reassign-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[18px] font-black text-slate-900">Reassign Board Ownership</div>
+                <div className="mt-1 text-[13px] font-semibold text-slate-500">
+                  Move <span className="font-black text-slate-900">{pageTitle}</span> to another supervisor workspace.
+                </div>
+              </div>
+              <button
+                className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                onClick={closeReassignModal}
+                disabled={reassigning}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <label className="grid gap-2">
+                <span className="text-[12px] font-extrabold text-slate-500">New owner</span>
+                <select
+                  className="workspace-reassign-field h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
+                  value={nextSupervisorID}
+                  onChange={(e) => setNextSupervisorID(Number(e.target.value))}
+                  disabled={reassigning || supervisorsLoading || eligibleSupervisors.length === 0}
+                >
+                  <option value={0}>
+                    {supervisorsLoading
+                      ? "Loading supervisors..."
+                      : eligibleSupervisors.length === 0
+                        ? "No other supervisors available"
+                        : "Select a supervisor"}
+                  </option>
+                  {eligibleSupervisors.map((supervisor) => (
+                    <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
+                      {supervisor.full_name} {supervisor.nickname ? `(@${supervisor.nickname})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {eligibleSupervisors.length > 0 ? (
+                <div className="workspace-warning rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+                  The current owner will be removed from this board, and Discord access will sync to the new owner.
+                </div>
+              ) : (
+                <div className="workspace-note rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold text-slate-600">
+                  Add another supervisor first, then you can transfer this board.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                className="h-11 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={submitReassign}
+                disabled={reassigning || !nextSupervisorID}
+              >
+                {reassigning ? "Moving..." : "Move board"}
+              </button>
+              <button
+                className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+                onClick={closeReassignModal}
+                disabled={reassigning}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {membersOpen && (
         <div
           className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
