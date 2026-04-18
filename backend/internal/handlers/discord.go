@@ -449,12 +449,8 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 	if !ok || !locationConfig.SendRoomNotice {
 		return false
 	}
-	channelID, roleID := a.roomBookingConfig()
-	mention := ""
-	if roleID != "" {
-		mention = "<@&" + roleID + ">"
-	}
-	if strings.TrimSpace(channelID) == "" || strings.TrimSpace(mention) == "" {
+	channelID, _ := a.roomBookingConfig()
+	if strings.TrimSpace(channelID) == "" {
 		return false
 	}
 
@@ -496,7 +492,7 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 
 	message := fmt.Sprintf(
 		"%s Please note that %s will be occupied from %s to %s %s.",
-		mention,
+		"talents",
 		strings.TrimSpace(meeting.Location),
 		formatRoomTime(startLocal),
 		formatRoomTime(endLocal),
