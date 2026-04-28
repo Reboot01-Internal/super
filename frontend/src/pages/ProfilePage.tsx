@@ -541,10 +541,10 @@ export default function ProfilePage() {
     (role === "admin" || role === "supervisor") &&
     localProfile?.user?.role === "student";
   const canManageAssignedTalents =
-    loadedProfileMatchesTarget && role === "admin" && localProfile?.user?.role === "supervisor";
+    loadedProfileMatchesTarget && role === "admin" && !!localProfile?.supervisor;
   const canCreateProfileBoard =
     loadedProfileMatchesTarget &&
-    localProfile?.user?.role === "supervisor" &&
+    !!localProfile?.supervisor &&
     (role === "admin" || (!isTargetUserView && role === "supervisor"));
   const selectedProfileSupervisor = useMemo(
     () =>

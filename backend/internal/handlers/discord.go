@@ -131,6 +131,25 @@ func (a *API) syncBoardDiscordChannel(boardID int64) bool {
 	updateCtx, updateCancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	if err := a.discord.UpdateBoardChannel(updateCtx, channelID, board.Name, categoryID, access, previouslyManagedUserIDs); err != nil {
 		updateCancel()
+		if strings.Contains(err.Error(), "status=404") || strings.Contains(err.Error(), "Unknown Channel") {
+			log.Printf("discord channel missing for board %d, recreating channel: %v", boardID, err)
+			createCtx, createCancel := context.WithTimeout(context.Background(), discordSyncTimeout)
+			channelID, err = a.discord.CreateBoardChannel(createCtx, board.Name, categoryID, access)
+			createCancel()
+			if err != nil {
+				log.Printf("discord channel recreate failed for board %d: %v", boardID, err)
+				return false
+			}
+			if err := db.UpsertBoardDiscordChannel(a.conn, boardID, channelID); err != nil {
+				log.Printf("discord channel mapping save failed for board %d: %v", boardID, err)
+				return false
+			}
+			if err := db.ReplaceBoardManagedDiscordUserIDs(a.conn, boardID, managedDiscordUserIDs); err != nil {
+				log.Printf("discord managed user save failed for board %d: %v", boardID, err)
+				return false
+			}
+			return true
+		}
 		log.Printf("discord channel update failed for board %d: %v", boardID, err)
 		return false
 	}
