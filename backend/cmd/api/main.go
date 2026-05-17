@@ -118,6 +118,7 @@ func main() {
 		ar.Get("/board-members", api.AdminListBoardMembers)
 
 		ar.Get("/eligible-students", api.AdminEligibleStudents)
+		ar.Get("/avatar", api.AdminRebootAvatar)
 
 		ar.Get("/board", api.AdminGetBoardFull)
 

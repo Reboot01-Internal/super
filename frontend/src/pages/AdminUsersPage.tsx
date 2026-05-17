@@ -91,6 +91,12 @@ function roleTone(role: string) {
   return "users-role-pill users-role-talent border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
+function loginOfUser(user: { nickname?: string; email?: string }) {
+  return String((user.nickname || "").trim() || String(user.email || "").split("@")[0] || "")
+    .trim()
+    .toLowerCase();
+}
+
 function withAt(n: string) {
   const x = (n || "").trim();
   if (!x) return "-";
@@ -513,7 +519,7 @@ export default function AdminUsersPage() {
     let alive = true;
 
     async function loadAvatars() {
-      const logins = rows.map((row) => row.nickname).filter(Boolean);
+      const logins = [...rows, ...searchResults, ...queue].map((row) => loginOfUser(row)).filter(Boolean);
       if (logins.length === 0) {
         setAvatarByLogin({});
         return;
@@ -532,13 +538,13 @@ export default function AdminUsersPage() {
     return () => {
       alive = false;
     };
-  }, [rows]);
+  }, [rows, searchResults, queue]);
 
   useEffect(() => {
     let alive = true;
 
     async function loadPhones() {
-      const logins = [...rows, ...searchResults, ...queue].map((user) => user.nickname).filter(Boolean);
+      const logins = [...rows, ...searchResults, ...queue].map((user) => loginOfUser(user)).filter(Boolean);
       if (logins.length === 0) {
         setPhoneByLogin({});
         return;
@@ -878,14 +884,21 @@ export default function AdminUsersPage() {
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  {visibleResults.map((u) => (
+                  {visibleResults.map((u) => {
+                    const userLogin = loginOfUser(u);
+                    const avatarUrl = avatarByLogin[userLogin] || "";
+                    return (
                     <article
                       key={`${u.email.toLowerCase()}::${createRole}`}
                       className="users-row-card flex items-center gap-3 rounded-[16px] border border-slate-200 bg-slate-50/75 px-3 py-3 transition hover:border-[#6d5efc]/18 hover:bg-white"
                     >
-                      <div className="grid h-11 w-11 flex-none place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
-                        {initialsOf(u.full_name)}
-                      </div>
+                      <UserAvatar
+                        src={avatarUrl}
+                        alt={u.full_name}
+                        fallback={initialsOf(u.full_name)}
+                        sizeClass="h-11 w-11"
+                        previewable
+                      />
 
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
@@ -893,7 +906,7 @@ export default function AdminUsersPage() {
                           {withAt(u.nickname)}
                         </div>
                         <div className="mt-1 truncate text-[12px] font-semibold text-slate-500">
-                          {phoneByLogin[String(u.nickname || "").trim().toLowerCase()] || "-"}
+                          {phoneByLogin[userLogin] || "-"}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(createRole)}`}>
@@ -921,7 +934,8 @@ export default function AdminUsersPage() {
                         <PlusIcon />
                       </button>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -964,7 +978,10 @@ export default function AdminUsersPage() {
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  {queue.map((u) => (
+                  {queue.map((u) => {
+                    const userLogin = loginOfUser(u);
+                    const avatarUrl = avatarByLogin[userLogin] || "";
+                    return (
                     <article
                       key={u.key}
                       className={[
@@ -974,9 +991,13 @@ export default function AdminUsersPage() {
                           : "border-slate-200 bg-slate-50/75 hover:border-[#6d5efc]/18 hover:bg-white",
                       ].join(" ")}
                     >
-                      <div className="grid h-11 w-11 flex-none place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
-                        {initialsOf(u.full_name)}
-                      </div>
+                      <UserAvatar
+                        src={avatarUrl}
+                        alt={u.full_name}
+                        fallback={initialsOf(u.full_name)}
+                        sizeClass="h-11 w-11"
+                        previewable
+                      />
 
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
@@ -984,7 +1005,7 @@ export default function AdminUsersPage() {
                           {withAt(u.nickname)}
                         </div>
                         <div className="mt-1 truncate text-[12px] font-semibold text-slate-500">
-                          {phoneByLogin[String(u.nickname || "").trim().toLowerCase()] || "-"}
+                          {phoneByLogin[userLogin] || "-"}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
@@ -1015,7 +1036,8 @@ export default function AdminUsersPage() {
                         <MinusIcon />
                       </button>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -1155,7 +1177,8 @@ export default function AdminUsersPage() {
         ) : (
           <div className="grid gap-2 lg:grid-cols-2">
             {visibleRows.map((u) => {
-              const avatarUrl = avatarByLogin[String(u.nickname || "").trim().toLowerCase()] || "";
+              const userLogin = loginOfUser(u);
+              const avatarUrl = avatarByLogin[userLogin] || "";
               return (
                 <article
                   key={u.id}
@@ -1215,7 +1238,7 @@ export default function AdminUsersPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
                       <div className="truncate text-[12px] font-semibold text-slate-500">
-                        {phoneByLogin[String(u.nickname || "").trim().toLowerCase()] || "-"}
+                        {phoneByLogin[userLogin] || "-"}
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
