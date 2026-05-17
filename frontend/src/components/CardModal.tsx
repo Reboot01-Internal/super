@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
-import { apiFetch } from "../lib/api";
+import { API_URL, apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
 import { playDoneSound } from "../lib/sound";
@@ -66,6 +66,18 @@ type Comment = {
   updated_at: string;
 };
 
+type CardAttachment = {
+  id: number;
+  card_id: number;
+  uploader_user_id: number;
+  uploader_name: string;
+  original_name: string;
+  stored_name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+};
+
 type CardFull = {
   card: Card;
   subtasks: Subtask[];
@@ -73,6 +85,7 @@ type CardFull = {
   activities: Activity[];
   labels: CardLabel[];
   comments: Comment[];
+  attachments: CardAttachment[];
   board_id: number;
 };
 
@@ -88,6 +101,24 @@ function loginOfUser(user: { nickname?: string; email?: string; full_name?: stri
   if (email.includes("@")) return email.split("@")[0];
   if (email) return email;
   return String(user.full_name || "").trim().toLowerCase().replace(/\s+/g, ".");
+}
+
+function attachmentURL(attachmentID: number) {
+  return `${API_URL}/admin/card/attachments/download?attachment_id=${encodeURIComponent(String(attachmentID))}`;
+}
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatAttachmentDate(value: string) {
+  if (!value) return "";
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return value.slice(0, 16);
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function isDateOverdue(due: string) {
@@ -392,6 +423,10 @@ export default function CardModal({
   const [commentBody, setCommentBody] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingBody, setEditingBody] = useState("");
+  const [attachments, setAttachments] = useState<CardAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<CardAttachment | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDue, setSubtaskDue] = useState("");
@@ -404,6 +439,10 @@ export default function CardModal({
   const [rightTab, setRightTab] = useState<"comments" | "activity">("comments");
 
   const assigneeIds = useMemo(() => new Set(assignees.map((a) => a.user_id)), [assignees]);
+  const imageAttachments = useMemo(
+    () => attachments.filter((attachment) => attachment.mime_type.startsWith("image/")),
+    [attachments]
+  );
 
   const isOverdue = useMemo(
     () => (card?.due_date ? isDateOverdue(card.due_date) : false),
@@ -497,6 +536,7 @@ export default function CardModal({
 
       setCardLabels(full.labels || []);
       setComments(full.comments || []);
+      setAttachments(full.attachments || []);
 
       const members: BoardMember[] = await apiFetch(`/admin/board-members?board_id=${full.board_id}`);
       setBoardMembers(members || []);
@@ -531,11 +571,22 @@ export default function CardModal({
     setCommentBody("");
     setEditingCommentId(null);
     setEditingBody("");
+    setUploadingAttachment(false);
+    setPreviewAttachment(null);
     setRightTab("comments");
 
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cardId]);
+
+  useEffect(() => {
+    if (!previewAttachment) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewAttachment(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [previewAttachment]);
 
   useEffect(() => {
     if (!assigneeOpen) return;
@@ -940,6 +991,36 @@ export default function CardModal({
     }
   }
 
+  async function uploadAttachment(file: File | null | undefined) {
+    if (!card || !file || uploadingAttachment) return;
+    setErr("");
+    setMsg("");
+
+    if (!file.type.startsWith("image/")) {
+      setErr("Please upload an image file.");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("card_id", String(card.id));
+    form.append("file", file);
+
+    setUploadingAttachment(true);
+    try {
+      await apiFetch("/admin/card/attachments/upload", {
+        method: "POST",
+        body: form,
+      });
+      await loadAll();
+      setMsg("Image uploaded");
+    } catch (e: any) {
+      setErr(e.message || "Failed to upload image");
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }
+
   async function deleteCard() {
     if (!card) return;
     const ok = await confirm({ title: "Delete card", message: "Delete this card? This cannot be undone." });
@@ -1110,6 +1191,69 @@ export default function CardModal({
                         placeholder="Notes, requirements, links..."
                         rows={4}
                       />
+                    </div>
+
+                    <div className={section}>
+                      <div className={sectionHead}>
+                        <div>
+                          <div className={sectionTitle}>Images</div>
+                          <div className="mt-[1px] text-[11px] font-semibold text-slate-500">
+                            {imageAttachments.length ? `${imageAttachments.length} uploaded` : "No images yet"}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="h-9 rounded-[10px] border border-indigo-500/25 bg-indigo-500/10 px-3 text-[13px] font-black text-slate-900 hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => attachmentInputRef.current?.click()}
+                          disabled={uploadingAttachment}
+                        >
+                          {uploadingAttachment ? "Uploading..." : "+ Upload image"}
+                        </button>
+                        <input
+                          ref={attachmentInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => uploadAttachment(event.target.files?.[0])}
+                        />
+                      </div>
+
+                      {imageAttachments.length === 0 ? (
+                        <div className="rounded-[14px] border border-dashed border-slate-300 bg-slate-50/70 px-3 py-4 text-[13px] font-semibold text-slate-500">
+                          Upload screenshots, mockups, or reference images for this card.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {imageAttachments.map((attachment) => (
+                              <button
+                                key={attachment.id}
+                                type="button"
+                                className="group overflow-hidden rounded-[16px] border border-slate-900/10 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+                                onClick={() => setPreviewAttachment(attachment)}
+                                title="Open image"
+                              >
+                                <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+                                  <img
+                                    src={attachmentURL(attachment.id)}
+                                    alt={attachment.original_name}
+                                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+                                  />
+                                </div>
+                                <div className="grid gap-0.5 px-2.5 py-2">
+                                  <div className="truncate text-[12px] font-black text-slate-900">
+                                    {attachment.original_name}
+                                  </div>
+                                  <div className="truncate text-[11px] font-bold text-slate-500">
+                                    {attachment.uploader_name} · {formatAttachmentDate(attachment.created_at)}
+                                  </div>
+                                  <div className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">
+                                    {formatBytes(attachment.size_bytes)}
+                                  </div>
+                                </div>
+                              </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className={section}>
@@ -1805,6 +1949,46 @@ export default function CardModal({
         </div>
       )}
     </Modal>
+    {previewAttachment ? (
+      <div
+        className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/80 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${previewAttachment.original_name} image preview`}
+        onClick={() => setPreviewAttachment(null)}
+      >
+        <div
+          className="grid max-h-[92vh] w-full max-w-5xl gap-3 rounded-[24px] border border-white/15 bg-white p-3 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex min-w-0 items-center justify-between gap-3 px-1">
+            <div className="min-w-0">
+              <div className="truncate text-[15px] font-black text-slate-950">
+                {previewAttachment.original_name}
+              </div>
+              <div className="truncate text-[12px] font-bold text-slate-500">
+                Uploaded by {previewAttachment.uploader_name} · {formatAttachmentDate(previewAttachment.created_at)} ·{" "}
+                {formatBytes(previewAttachment.size_bytes)}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewAttachment(null)}
+              className="h-9 rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+            >
+              Close
+            </button>
+          </div>
+          <div className="min-h-0 overflow-hidden rounded-[18px] bg-slate-950">
+            <img
+              src={attachmentURL(previewAttachment.id)}
+              alt={previewAttachment.original_name}
+              className="max-h-[78vh] w-full object-contain"
+            />
+          </div>
+        </div>
+      </div>
+    ) : null}
     </>
   );
 }

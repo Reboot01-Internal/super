@@ -488,6 +488,11 @@ func (a *API) AdminUploadAttachment(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(mime) == "" {
 		mime = "application/octet-stream"
 	}
+	if !strings.HasPrefix(strings.ToLower(mime), "image/") {
+		_ = os.Remove(dstPath)
+		writeErr(w, http.StatusBadRequest, "only image uploads are supported")
+		return
+	}
 
 	actor := actorID(r, a.conn)
 	attID, err := db.InsertAttachment(a.conn, cardID, actor, hdr.Filename, stored, mime, n)
@@ -522,7 +527,11 @@ func (a *API) AdminDownloadAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", att.MimeType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, att.OriginalName))
+	disposition := "attachment"
+	if strings.HasPrefix(strings.ToLower(att.MimeType), "image/") {
+		disposition = "inline"
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, att.OriginalName))
 	http.ServeFile(w, r, p)
 }
 
