@@ -1194,6 +1194,18 @@ body.admin-dark-theme {
   color: #7ee0ae !important;
 }
 
+.admin-dark .board-detail-icon-button-status {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .board-detail-icon-button-danger {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
 .admin-dark .board-detail-back-button {
   background: #111a2c !important;
   border-color: #25324a !important;

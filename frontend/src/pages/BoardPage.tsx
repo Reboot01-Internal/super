@@ -104,7 +104,7 @@ function BoardStatusIconButton({
     <button
       type="button"
       className={[
-        "grid h-10 w-10 place-items-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-60",
+        "board-detail-icon-button board-detail-icon-button-status grid h-10 w-10 place-items-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-60",
         isActive
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
           : "border-slate-300 bg-slate-100 text-slate-500 hover:bg-slate-200",
@@ -1359,7 +1359,7 @@ export default function BoardPage() {
           {isAdmin ? (
             <button
               type="button"
-              className="board-detail-icon-button h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="board-detail-icon-button board-detail-icon-button-warning h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={openReassignModal}
               disabled={reassigning}
               title="Reassign board ownership"
@@ -1379,7 +1379,7 @@ export default function BoardPage() {
           {canManage ? (
             <button
               type="button"
-              className="board-detail-icon-button h-10 w-10 grid place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="board-detail-icon-button board-detail-icon-button-danger h-10 w-10 grid place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={deleteBoard}
               disabled={deletingBoard}
               title={deletingBoard ? "Deleting board..." : "Delete board"}
