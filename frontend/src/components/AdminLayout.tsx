@@ -88,9 +88,9 @@ export default function AdminLayout({
   const { hasUnread } = useNotifications();
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === "undefined") return false;
     const savedTheme = window.localStorage.getItem("taskflow-theme");
-    return savedTheme ? savedTheme === "dark" : true;
+    return savedTheme ? savedTheme === "dark" : false;
   });
   const baseName = login || email || "User";
   const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
